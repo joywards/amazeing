@@ -1,0 +1,9 @@
+[package]
+name = "amazeing"
+version = "0.1.0"
+authors = ["Kalabuk Dmitriy <kalabukdima@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+disjoint-sets = "0.4.2"
+sdl2 = "0.32.1"
