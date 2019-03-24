@@ -1,3 +1,9 @@
+extern crate disjoint_sets;
+
+use std::marker::PhantomData;
+use disjoint_sets::UnionFind;
+
+
 /// Represents bijection between elements of type `Self` and nonnegative integers.
 trait Ordinal {
     fn ordinal(object: Self) -> usize;
@@ -95,4 +101,57 @@ fn test_ordinal_pair_isize() {
     assert_eq!(<&(isize, isize)>::ordinal(&(1, -1)), 8);
     assert_eq!(<&(isize, isize)>::ordinal(&(1, 0)), 5);
     assert_eq!(<&(isize, isize)>::ordinal(&(1, 1)), 12);
+}
+
+
+struct DSU<T> {
+    union_find: UnionFind<usize>,
+    phantom: PhantomData<T>,
+}
+
+impl<T: Ordinal> DSU<T> {
+    fn get_index(&mut self, a: T) -> usize {
+        let a_i = Ordinal::ordinal(a);
+        while self.union_find.len() <= a_i {
+            self.union_find.alloc();
+        }
+        a_i
+    }
+
+    pub fn new() -> Self {
+        DSU::<T> {
+            union_find: UnionFind::<usize>::new(0),
+            phantom: PhantomData,
+        }
+    }
+
+    pub fn union(&mut self, a: T, b: T) -> bool {
+        let a_i = self.get_index(a);
+        let b_i = self.get_index(b);
+        self.union_find.union(a_i, b_i)
+    }
+
+    pub fn equiv(&self, a: T, b: T) -> bool {
+        let a_i = Ordinal::ordinal(a);
+        let b_i = Ordinal::ordinal(b);
+        if a_i >= self.union_find.len() || b_i >= self.union_find.len() {
+            a_i == b_i
+        } else {
+            self.union_find.equiv(a_i, b_i)
+        }
+    }
+}
+
+#[test]
+fn test_dsu() {
+    let mut dsu = DSU::<&(isize, isize)>::new();
+    assert!(!dsu.equiv(&(0, 0), &(1, 0)));
+    assert!(dsu.equiv(&(0, 0), &(0, 0)));
+    dsu.union(&(0, 0), &(0, 1));
+    dsu.union(&(1, 0), &(1, 1));
+    dsu.union(&(2, 1), &(2, 0));
+    assert!(!dsu.equiv(&(0, 0), &(1, 0)));
+    dsu.union(&(0, 1), &(1, 1));
+    assert!(dsu.equiv(&(0, 0), &(1, 0)));
+    assert!(!dsu.equiv(&(0, 0), &(2, 0)));
 }
