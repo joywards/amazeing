@@ -22,7 +22,7 @@ impl std::ops::Add for Coord {
     fn add(self, rhs: Coord) -> Coord {
         Coord{
             x: self.x + rhs.x,
-            y: self.x + rhs.y,
+            y: self.y + rhs.y,
         }
     }
 }
@@ -32,7 +32,7 @@ impl std::ops::Sub for Coord {
     fn sub(self, rhs: Coord) -> Coord {
         Coord{
             x: self.x - rhs.x,
-            y: self.x - rhs.y,
+            y: self.y - rhs.y,
         }
     }
 }
@@ -42,3 +42,12 @@ impl Ordinal for Coord {
         Ordinal::ordinal(&(coord.x, coord.y))
     }
 }
+
+#[test]
+fn test_advance() {
+    assert_eq!(Coord::new(0, 1).advance(Dir::UP), Coord::new(0, 0));
+    assert_eq!(Coord::new(2, 1).advance(Dir::RIGHT), Coord::new(3, 1));
+    assert_eq!(Coord::new(-1, -1).advance(Dir::DOWN), Coord::new(-1, 0));
+    assert_eq!(Coord::new(-2, 1).advance(Dir::LEFT), Coord::new(-3, 1));
+}
+
