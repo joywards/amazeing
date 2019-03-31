@@ -104,6 +104,7 @@ fn test_ordinal_pair_isize() {
 }
 
 
+#[derive(Default, Clone)]
 struct DSU<T> {
     union_find: UnionFind<usize>,
     phantom: PhantomData<T>,
