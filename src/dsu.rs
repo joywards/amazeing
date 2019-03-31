@@ -5,7 +5,7 @@ use disjoint_sets::UnionFind;
 
 
 /// Represents bijection between elements of type `Self` and nonnegative integers.
-trait Ordinal {
+pub trait Ordinal {
     fn ordinal(object: Self) -> usize;
 
     fn from_ordinal(_ordinal: usize) -> Self
@@ -105,7 +105,7 @@ fn test_ordinal_pair_isize() {
 
 
 #[derive(Default, Clone)]
-struct DSU<T> {
+pub struct DSU<T> {
     union_find: UnionFind<usize>,
     phantom: PhantomData<T>,
 }
