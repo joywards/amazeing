@@ -27,7 +27,7 @@ struct Layer {
 }
 
 impl Layer {
-    pub fn inside(&self, coord: &Coord) -> bool {
+    pub fn has(&self, coord: &Coord) -> bool {
         self.cells.contains_key(coord)
     }
 
@@ -62,7 +62,7 @@ impl Layer {
             Dir::RIGHT | Dir::DOWN => {
                 let to = from.advance(dir);
                 const MSG: &str = "Trying to join with cell outside the layer";
-                assert!(self.inside(&to), MSG);
+                assert!(self.has(&to), MSG);
 
                 let cell = self.cells.get_mut(from).expect(MSG);
                 *cell.get_passage_mut(dir) = true;
@@ -79,12 +79,12 @@ impl Layer {
 #[test]
 fn test_layer() {
     let mut layer: Layer = Default::default();
-    assert!(!layer.inside(&Coord::new(0, 0)));
+    assert!(!layer.has(&Coord::new(0, 0)));
     layer.add(&Coord::new(0, 0));
     layer.add(&Coord::new(0, 1));
     layer.add(&Coord::new(1, 0));
-    assert!(layer.inside(&Coord::new(0, 0)));
-    assert!(!layer.inside(&Coord::new(1, 1)));
+    assert!(layer.has(&Coord::new(0, 0)));
+    assert!(!layer.has(&Coord::new(1, 1)));
 
     layer.join(&Coord::new(0, 0), Dir::RIGHT);
     assert!(layer.passable(&Coord::new(1, 0), Dir::LEFT));
