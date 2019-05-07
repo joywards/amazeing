@@ -1,4 +1,4 @@
-use super::direction::{Dir, DIRECTIONS};
+use super::direction::Dir;
 use crate::dsu::Ordinal;
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -13,7 +13,7 @@ impl Coord {
     }
 
     pub fn advance(&self, dir: Dir) -> Coord {
-        *self + DIRECTIONS[dir]
+        *self + dir.into()
     }
 }
 
@@ -33,6 +33,18 @@ impl std::ops::Sub for Coord {
         Coord{
             x: self.x - rhs.x,
             y: self.y - rhs.y,
+        }
+    }
+}
+
+/// Uses screen coordinate system - X axis points right and Y axis points down.
+impl From<Dir> for Coord {
+    fn from(dir: Dir) -> Self {
+        match dir {
+            Dir::RIGHT => Coord::new(1, 0),
+            Dir::DOWN => Coord::new(0, 1),
+            Dir::LEFT => Coord::new(-1, 0),
+            Dir::UP => Coord::new(0, -1)
         }
     }
 }
