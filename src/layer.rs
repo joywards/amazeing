@@ -21,18 +21,18 @@ impl Cell {
 }
 
 #[derive(Default, Clone)]
-struct Layer {
+pub struct Layer {
     cells: HashMap<Coord, Cell>,
     dsu: DSU<Coord>,
 }
 
 impl Layer {
-    pub fn has(&self, coord: &Coord) -> bool {
-        self.cells.contains_key(coord)
+    pub fn has<C: Into<Coord>>(&self, coord: C) -> bool {
+        self.cells.contains_key(&coord.into())
     }
 
-    pub fn add(&mut self, coord: &Coord) {
-        self.cells.insert(*coord, Default::default());
+    pub fn add<C: Into<Coord>>(&mut self, coord: C) {
+        self.cells.insert(coord.into(), Default::default());
     }
 
     pub fn passable(&self, from: &Coord, dir: Dir) -> bool {
@@ -62,7 +62,7 @@ impl Layer {
             Dir::RIGHT | Dir::DOWN => {
                 let to = from.advance(dir);
                 const MSG: &str = "Trying to join with cell outside the layer";
-                assert!(self.has(&to), MSG);
+                assert!(self.has(to), MSG);
 
                 let cell = self.cells.get_mut(from).expect(MSG);
                 *cell.get_passage_mut(dir) = true;
@@ -79,12 +79,12 @@ impl Layer {
 #[test]
 fn test_layer() {
     let mut layer: Layer = Default::default();
-    assert!(!layer.has(&Coord::new(0, 0)));
-    layer.add(&Coord::new(0, 0));
-    layer.add(&Coord::new(0, 1));
-    layer.add(&Coord::new(1, 0));
-    assert!(layer.has(&Coord::new(0, 0)));
-    assert!(!layer.has(&Coord::new(1, 1)));
+    assert!(!layer.has(Coord::new(0, 0)));
+    layer.add(Coord::new(0, 0));
+    layer.add(Coord::new(0, 1));
+    layer.add(Coord::new(1, 0));
+    assert!(layer.has(Coord::new(0, 0)));
+    assert!(!layer.has(Coord::new(1, 1)));
 
     layer.join(&Coord::new(0, 0), Dir::RIGHT);
     assert!(layer.passable(&Coord::new(1, 0), Dir::LEFT));

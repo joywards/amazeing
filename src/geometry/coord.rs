@@ -37,6 +37,15 @@ impl std::ops::Sub for Coord {
     }
 }
 
+impl<X: Into<isize>, Y: Into<isize>> From<(X, Y)> for Coord {
+    fn from(tuple: (X, Y)) -> Self {
+        Coord {
+            x: tuple.0.into(),
+            y: tuple.1.into(),
+        }
+    }
+}
+
 /// Uses screen coordinate system - X axis points right and Y axis points down.
 impl From<Dir> for Coord {
     fn from(dir: Dir) -> Self {
