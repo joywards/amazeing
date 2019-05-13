@@ -60,7 +60,7 @@ impl From<Dir> for Coord {
 
 impl Ordinal for Coord {
     fn ordinal(coord: Self) -> u32 {
-        Ordinal::ordinal(&(coord.x, coord.y))
+        Ordinal::ordinal((coord.x, coord.y))
     }
 }
 

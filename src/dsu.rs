@@ -65,7 +65,7 @@ fn test_from_ordinal_i32() {
 ///   O-0-1-2-3------->
 ///                  x
 ///```
-impl Ordinal for &(u32, u32) {
+impl Ordinal for (u32, u32) {
     fn ordinal(pair: Self) -> u32 {
         let sum = pair.0 + pair.1;
         sum * (sum + 1) / 2 + pair.0
@@ -74,33 +74,33 @@ impl Ordinal for &(u32, u32) {
 
 #[test]
 fn test_ordinal_pair_u32() {
-    assert_eq!(<&(u32, u32)>::ordinal(&(0, 0)), 0);
-    assert_eq!(<&(u32, u32)>::ordinal(&(0, 1)), 1);
-    assert_eq!(<&(u32, u32)>::ordinal(&(1, 0)), 2);
-    assert_eq!(<&(u32, u32)>::ordinal(&(0, 2)), 3);
-    assert_eq!(<&(u32, u32)>::ordinal(&(1, 1)), 4);
-    assert_eq!(<&(u32, u32)>::ordinal(&(2, 0)), 5);
-    assert_eq!(<&(u32, u32)>::ordinal(&(0, 1 << 15)), (1 << 14) * ((1 << 15) + 1));
+    assert_eq!(<(u32, u32)>::ordinal((0, 0)), 0);
+    assert_eq!(<(u32, u32)>::ordinal((0, 1)), 1);
+    assert_eq!(<(u32, u32)>::ordinal((1, 0)), 2);
+    assert_eq!(<(u32, u32)>::ordinal((0, 2)), 3);
+    assert_eq!(<(u32, u32)>::ordinal((1, 1)), 4);
+    assert_eq!(<(u32, u32)>::ordinal((2, 0)), 5);
+    assert_eq!(<(u32, u32)>::ordinal((0, 1 << 15)), (1 << 14) * ((1 << 15) + 1));
 }
 
 
-impl Ordinal for &(i32, i32) {
+impl Ordinal for (i32, i32) {
     fn ordinal(pair: Self) -> u32 {
-        Ordinal::ordinal(&(i32::ordinal(pair.0), i32::ordinal(pair.1)))
+        Ordinal::ordinal((i32::ordinal(pair.0), i32::ordinal(pair.1)))
     }
 }
 
 #[test]
 fn test_ordinal_pair_i32() {
-    assert_eq!(<&(i32, i32)>::ordinal(&(-1, -1)), 4);
-    assert_eq!(<&(i32, i32)>::ordinal(&(-1, 0)), 2);
-    assert_eq!(<&(i32, i32)>::ordinal(&(-1, 1)), 7);
-    assert_eq!(<&(i32, i32)>::ordinal(&(0, -1)), 1);
-    assert_eq!(<&(i32, i32)>::ordinal(&(0, 0)), 0);
-    assert_eq!(<&(i32, i32)>::ordinal(&(0, 1)), 3);
-    assert_eq!(<&(i32, i32)>::ordinal(&(1, -1)), 8);
-    assert_eq!(<&(i32, i32)>::ordinal(&(1, 0)), 5);
-    assert_eq!(<&(i32, i32)>::ordinal(&(1, 1)), 12);
+    assert_eq!(<(i32, i32)>::ordinal((-1, -1)), 4);
+    assert_eq!(<(i32, i32)>::ordinal((-1, 0)), 2);
+    assert_eq!(<(i32, i32)>::ordinal((-1, 1)), 7);
+    assert_eq!(<(i32, i32)>::ordinal((0, -1)), 1);
+    assert_eq!(<(i32, i32)>::ordinal((0, 0)), 0);
+    assert_eq!(<(i32, i32)>::ordinal((0, 1)), 3);
+    assert_eq!(<(i32, i32)>::ordinal((1, -1)), 8);
+    assert_eq!(<(i32, i32)>::ordinal((1, 0)), 5);
+    assert_eq!(<(i32, i32)>::ordinal((1, 1)), 12);
 }
 
 
@@ -140,14 +140,14 @@ impl<T: Ordinal> DSU<T> {
 
 #[test]
 fn test_dsu() {
-    let mut dsu = DSU::<&(i32, i32)>::new();
-    assert!(!dsu.equiv(&(0, 0), &(1, 0)));
-    assert!(dsu.equiv(&(0, 0), &(0, 0)));
-    dsu.union(&(0, 0), &(0, 1));
-    dsu.union(&(1, 0), &(1, 1));
-    dsu.union(&(2, 1), &(2, 0));
-    assert!(!dsu.equiv(&(0, 0), &(1, 0)));
-    dsu.union(&(0, 1), &(1, 1));
-    assert!(dsu.equiv(&(0, 0), &(1, 0)));
-    assert!(!dsu.equiv(&(0, 0), &(2, 0)));
+    let mut dsu = DSU::default();
+    assert!(!dsu.equiv((0, 0), (1, 0)));
+    assert!(dsu.equiv((0, 0), (0, 0)));
+    dsu.union((0, 0), (0, 1));
+    dsu.union((1, 0), (1, 1));
+    dsu.union((2, 1), (2, 0));
+    assert!(!dsu.equiv((0, 0), (1, 0)));
+    dsu.union((0, 1), (1, 1));
+    assert!(dsu.equiv((0, 0), (1, 0)));
+    assert!(!dsu.equiv((0, 0), (2, 0)));
 }
