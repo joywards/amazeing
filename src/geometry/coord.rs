@@ -3,17 +3,17 @@ use crate::dsu::Ordinal;
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Coord {
-    x: isize,
-    y: isize
+    pub x: i32,
+    pub y: i32
 }
 
 impl Coord {
-    pub fn new(x: isize, y: isize) -> Coord {
+    pub fn new(x: i32, y: i32) -> Coord {
         Coord{x, y}
     }
 
-    pub fn advance(&self, dir: Dir) -> Coord {
-        *self + dir.into()
+    pub fn advance(self, dir: Dir) -> Coord {
+        self + dir.into()
     }
 }
 
@@ -37,7 +37,7 @@ impl std::ops::Sub for Coord {
     }
 }
 
-impl<X: Into<isize>, Y: Into<isize>> From<(X, Y)> for Coord {
+impl<X: Into<i32>, Y: Into<i32>> From<(X, Y)> for Coord {
     fn from(tuple: (X, Y)) -> Self {
         Coord {
             x: tuple.0.into(),
@@ -59,7 +59,7 @@ impl From<Dir> for Coord {
 }
 
 impl Ordinal for Coord {
-    fn ordinal(coord: Self) -> usize {
+    fn ordinal(coord: Self) -> u32 {
         Ordinal::ordinal(&(coord.x, coord.y))
     }
 }

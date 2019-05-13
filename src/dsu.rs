@@ -6,48 +6,48 @@ use disjoint_sets::UnionFind;
 
 /// Represents bijection between elements of type `Self` and nonnegative integers.
 pub trait Ordinal {
-    fn ordinal(object: Self) -> usize;
+    fn ordinal(object: Self) -> u32;
 
-    fn from_ordinal(_ordinal: usize) -> Self
+    fn from_ordinal(_ordinal: u32) -> Self
     where Self: std::marker::Sized {
         unimplemented!();
     }
 }
 
-impl Ordinal for isize {
-    fn ordinal(number: isize) -> usize {
+impl Ordinal for i32 {
+    fn ordinal(number: i32) -> u32 {
         if number >= 0 {
-            number as usize * 2
+            number as u32 * 2
         } else {
-            -number as usize * 2 - 1
+            -number as u32 * 2 - 1
         }
     }
 
-    fn from_ordinal(ordinal: usize) -> isize {
+    fn from_ordinal(ordinal: u32) -> i32 {
         if ordinal % 2 == 0 {
-            (ordinal / 2) as isize
+            (ordinal / 2) as i32
         } else {
-            -(((ordinal + 1) / 2) as isize)
+            -(((ordinal + 1) / 2) as i32)
         }
     }
 }
 
 #[test]
-fn test_ordinal_isize() {
-    assert_eq!(isize::ordinal(0), 0);
-    assert_eq!(isize::ordinal(-1), 1);
-    assert_eq!(isize::ordinal(1), 2);
-    assert_eq!(isize::ordinal(-2), 3);
-    assert_eq!(isize::ordinal(2), 4);
-    assert_eq!(isize::ordinal(-3), 5);
-    assert_eq!(isize::ordinal(1 << 30), 1 << 31);
-    assert_eq!(isize::ordinal(-(1 << 30)), (1 << 31) - 1);
+fn test_ordinal_i32() {
+    assert_eq!(i32::ordinal(0), 0);
+    assert_eq!(i32::ordinal(-1), 1);
+    assert_eq!(i32::ordinal(1), 2);
+    assert_eq!(i32::ordinal(-2), 3);
+    assert_eq!(i32::ordinal(2), 4);
+    assert_eq!(i32::ordinal(-3), 5);
+    assert_eq!(i32::ordinal(1 << 30), 1 << 31);
+    assert_eq!(i32::ordinal(-(1 << 30)), (1 << 31) - 1);
 }
 
 #[test]
-fn test_from_ordinal_isize() {
+fn test_from_ordinal_i32() {
     for i in (-16..16).chain([1 << 30, -(1 << 30)].iter().map(|&x| x)) {
-        assert_eq!(i, isize::from_ordinal(isize::ordinal(i)));
+        assert_eq!(i, i32::from_ordinal(i32::ordinal(i)));
     }
 }
 
@@ -65,55 +65,55 @@ fn test_from_ordinal_isize() {
 ///   O-0-1-2-3------->
 ///                  x
 ///```
-impl Ordinal for &(usize, usize) {
-    fn ordinal(pair: Self) -> usize {
+impl Ordinal for &(u32, u32) {
+    fn ordinal(pair: Self) -> u32 {
         let sum = pair.0 + pair.1;
         sum * (sum + 1) / 2 + pair.0
     }
 }
 
 #[test]
-fn test_ordinal_pair_usize() {
-    assert_eq!(<&(usize, usize)>::ordinal(&(0, 0)), 0);
-    assert_eq!(<&(usize, usize)>::ordinal(&(0, 1)), 1);
-    assert_eq!(<&(usize, usize)>::ordinal(&(1, 0)), 2);
-    assert_eq!(<&(usize, usize)>::ordinal(&(0, 2)), 3);
-    assert_eq!(<&(usize, usize)>::ordinal(&(1, 1)), 4);
-    assert_eq!(<&(usize, usize)>::ordinal(&(2, 0)), 5);
-    assert_eq!(<&(usize, usize)>::ordinal(&(0, 1 << 15)), (1 << 14) * ((1 << 15) + 1));
+fn test_ordinal_pair_u32() {
+    assert_eq!(<&(u32, u32)>::ordinal(&(0, 0)), 0);
+    assert_eq!(<&(u32, u32)>::ordinal(&(0, 1)), 1);
+    assert_eq!(<&(u32, u32)>::ordinal(&(1, 0)), 2);
+    assert_eq!(<&(u32, u32)>::ordinal(&(0, 2)), 3);
+    assert_eq!(<&(u32, u32)>::ordinal(&(1, 1)), 4);
+    assert_eq!(<&(u32, u32)>::ordinal(&(2, 0)), 5);
+    assert_eq!(<&(u32, u32)>::ordinal(&(0, 1 << 15)), (1 << 14) * ((1 << 15) + 1));
 }
 
 
-impl Ordinal for &(isize, isize) {
-    fn ordinal(pair: Self) -> usize {
-        Ordinal::ordinal(&(isize::ordinal(pair.0), isize::ordinal(pair.1)))
+impl Ordinal for &(i32, i32) {
+    fn ordinal(pair: Self) -> u32 {
+        Ordinal::ordinal(&(i32::ordinal(pair.0), i32::ordinal(pair.1)))
     }
 }
 
 #[test]
-fn test_ordinal_pair_isize() {
-    assert_eq!(<&(isize, isize)>::ordinal(&(-1, -1)), 4);
-    assert_eq!(<&(isize, isize)>::ordinal(&(-1, 0)), 2);
-    assert_eq!(<&(isize, isize)>::ordinal(&(-1, 1)), 7);
-    assert_eq!(<&(isize, isize)>::ordinal(&(0, -1)), 1);
-    assert_eq!(<&(isize, isize)>::ordinal(&(0, 0)), 0);
-    assert_eq!(<&(isize, isize)>::ordinal(&(0, 1)), 3);
-    assert_eq!(<&(isize, isize)>::ordinal(&(1, -1)), 8);
-    assert_eq!(<&(isize, isize)>::ordinal(&(1, 0)), 5);
-    assert_eq!(<&(isize, isize)>::ordinal(&(1, 1)), 12);
+fn test_ordinal_pair_i32() {
+    assert_eq!(<&(i32, i32)>::ordinal(&(-1, -1)), 4);
+    assert_eq!(<&(i32, i32)>::ordinal(&(-1, 0)), 2);
+    assert_eq!(<&(i32, i32)>::ordinal(&(-1, 1)), 7);
+    assert_eq!(<&(i32, i32)>::ordinal(&(0, -1)), 1);
+    assert_eq!(<&(i32, i32)>::ordinal(&(0, 0)), 0);
+    assert_eq!(<&(i32, i32)>::ordinal(&(0, 1)), 3);
+    assert_eq!(<&(i32, i32)>::ordinal(&(1, -1)), 8);
+    assert_eq!(<&(i32, i32)>::ordinal(&(1, 0)), 5);
+    assert_eq!(<&(i32, i32)>::ordinal(&(1, 1)), 12);
 }
 
 
 #[derive(Default, Clone)]
 pub struct DSU<T> {
-    union_find: UnionFind<usize>,
+    union_find: UnionFind<u32>,
     phantom: PhantomData<T>,
 }
 
 impl<T: Ordinal> DSU<T> {
-    fn get_index(&mut self, a: T) -> usize {
+    fn get_index(&mut self, a: T) -> u32 {
         let a_i = Ordinal::ordinal(a);
-        while self.union_find.len() <= a_i {
+        while self.union_find.len() as u32 <= a_i {
             self.union_find.alloc();
         }
         a_i
@@ -121,7 +121,7 @@ impl<T: Ordinal> DSU<T> {
 
     pub fn new() -> Self {
         DSU::<T> {
-            union_find: UnionFind::<usize>::new(0),
+            union_find: UnionFind::<u32>::new(0),
             phantom: PhantomData,
         }
     }
@@ -135,7 +135,9 @@ impl<T: Ordinal> DSU<T> {
     pub fn equiv(&self, a: T, b: T) -> bool {
         let a_i = Ordinal::ordinal(a);
         let b_i = Ordinal::ordinal(b);
-        if a_i >= self.union_find.len() || b_i >= self.union_find.len() {
+        if a_i >= self.union_find.len() as u32
+            || b_i >= self.union_find.len() as u32
+        {
             a_i == b_i
         } else {
             self.union_find.equiv(a_i, b_i)
@@ -145,7 +147,7 @@ impl<T: Ordinal> DSU<T> {
 
 #[test]
 fn test_dsu() {
-    let mut dsu = DSU::<&(isize, isize)>::new();
+    let mut dsu = DSU::<&(i32, i32)>::new();
     assert!(!dsu.equiv(&(0, 0), &(1, 0)));
     assert!(dsu.equiv(&(0, 0), &(0, 0)));
     dsu.union(&(0, 0), &(0, 1));

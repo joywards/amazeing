@@ -35,16 +35,16 @@ impl Layer {
         self.cells.insert(coord.into(), Default::default());
     }
 
-    pub fn passable(&self, from: &Coord, dir: Dir) -> bool {
+    pub fn passable(&self, from: Coord, dir: Dir) -> bool {
         let cell;
-        match self.cells.get(from) {
+        match self.cells.get(&from) {
             None => return false,
             Some(value) => cell = value,
         }
         match dir {
             Dir::LEFT | Dir::UP =>
                 self.passable(
-                    &from.advance(dir),
+                    from.advance(dir),
                     dir.opposite()
                 ),
             Dir::RIGHT => cell.has_passage_right,
@@ -52,11 +52,11 @@ impl Layer {
         }
     }
 
-    pub fn join(&mut self, from: &Coord, dir: Dir) {
+    pub fn join(&mut self, from: Coord, dir: Dir) {
         match dir {
             Dir::LEFT | Dir::UP =>
                 self.join(
-                    &from.advance(dir),
+                    from.advance(dir),
                     dir.opposite()
                 ),
             Dir::RIGHT | Dir::DOWN => {
@@ -64,15 +64,15 @@ impl Layer {
                 const MSG: &str = "Trying to join with cell outside the layer";
                 assert!(self.has(to), MSG);
 
-                let cell = self.cells.get_mut(from).expect(MSG);
+                let cell = self.cells.get_mut(&from).expect(MSG);
                 *cell.get_passage_mut(dir) = true;
-                self.dsu.union(*from, to);
+                self.dsu.union(from, to);
             }
         }
     }
 
-    pub fn reachable(&self, from: &Coord, to: &Coord) -> bool {
-        self.dsu.equiv(*from, *to)
+    pub fn reachable(&self, from: Coord, to: Coord) -> bool {
+        self.dsu.equiv(from, to)
     }
 }
 
@@ -86,11 +86,11 @@ fn test_layer() {
     assert!(layer.has(Coord::new(0, 0)));
     assert!(!layer.has(Coord::new(1, 1)));
 
-    layer.join(&Coord::new(0, 0), Dir::RIGHT);
-    assert!(layer.passable(&Coord::new(1, 0), Dir::LEFT));
-    assert!(!layer.passable(&Coord::new(0, 0), Dir::DOWN));
-    assert!(!layer.reachable(&Coord::new(1, 0), &Coord::new(0, 1)));
-    layer.join(&Coord::new(0, 1), Dir::UP);
-    assert!(layer.passable(&Coord::new(0, 0), Dir::DOWN));
-    assert!(layer.reachable(&Coord::new(1, 0), &Coord::new(0, 1)));
+    layer.join(Coord::new(0, 0), Dir::RIGHT);
+    assert!(layer.passable(Coord::new(1, 0), Dir::LEFT));
+    assert!(!layer.passable(Coord::new(0, 0), Dir::DOWN));
+    assert!(!layer.reachable(Coord::new(1, 0), Coord::new(0, 1)));
+    layer.join(Coord::new(0, 1), Dir::UP);
+    assert!(layer.passable(Coord::new(0, 0), Dir::DOWN));
+    assert!(layer.reachable(Coord::new(1, 0), Coord::new(0, 1)));
 }
