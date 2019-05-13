@@ -119,13 +119,6 @@ impl<T: Ordinal> DSU<T> {
         a_i
     }
 
-    pub fn new() -> Self {
-        DSU::<T> {
-            union_find: UnionFind::<u32>::new(0),
-            phantom: PhantomData,
-        }
-    }
-
     pub fn union(&mut self, a: T, b: T) -> bool {
         let a_i = self.get_index(a);
         let b_i = self.get_index(b);
