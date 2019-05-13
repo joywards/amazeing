@@ -2,7 +2,7 @@ extern crate rand;
 
 use crate::layer::Layer;
 use crate::geometry::coord::Coord;
-use crate::geometry::direction::Dir;
+use crate::geometry::direction::{Dir, DIRECTIONS};
 use rand::Rng;
 use rand::seq::SliceRandom;
 
@@ -10,7 +10,7 @@ const CHANCE_TO_BE_NEXT: f64 = 0.07;
 
 fn possible_moves(layer: &Layer, from: Coord) -> Vec<Dir> {
     let mut result= vec![];
-    for &dir in [Dir::LEFT, Dir::DOWN, Dir::RIGHT, Dir::UP].iter() {
+    for &dir in &DIRECTIONS {
         let to = from.advance(dir);
         if layer.has(to) && !layer.reachable(from, to) {
             result.push(dir);
@@ -30,6 +30,7 @@ fn expand_randomly<R>(layer: &mut Layer, from: Coord, rng: &mut R)
     })
 }
 
+// There is probably space for optimization here.
 pub fn generate<R: Rng + ?Sized>(layer: &mut Layer, origin: Coord, rng: &mut R) {
     assert!(layer.has(origin));
     let mut queue: Vec<Coord> = vec![origin];

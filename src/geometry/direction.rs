@@ -34,3 +34,5 @@ impl Dir {
         }
     }
 }
+
+pub const DIRECTIONS: [Dir; 4] = [Dir::UP, Dir::RIGHT, Dir::DOWN, Dir::LEFT];
