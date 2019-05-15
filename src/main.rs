@@ -5,6 +5,7 @@ mod dsu;
 mod layer;
 mod geometry;
 mod generation;
+mod maze;
 
 use sdl2::pixels::Color;
 use sdl2::event::Event;
