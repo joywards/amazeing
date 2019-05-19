@@ -84,7 +84,7 @@ fn generate_layer(seed: u64) -> Layer {
         }
     }
     let mut rng = SmallRng::seed_from_u64(seed);
-    generate(&mut layer, Coord::new(0, 0), &mut rng);
+    generate(&mut layer, &[Coord::new(0, 0)], &Default::default(), &mut rng);
     layer
 }
 

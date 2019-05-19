@@ -1,5 +1,6 @@
 extern crate rand;
 
+use std::collections::HashSet;
 use crate::layer::Layer;
 use crate::geometry::coord::Coord;
 use crate::geometry::direction::{Dir, DIRECTIONS};
@@ -8,22 +9,27 @@ use rand::seq::SliceRandom;
 
 const CHANCE_TO_BE_NEXT: f64 = 0.07;
 
-fn possible_moves(layer: &Layer, from: Coord) -> Vec<Dir> {
+fn possible_moves(layer: &Layer, from: Coord, blocked_cells: &HashSet<Coord>) -> Vec<Dir> {
     let mut result= vec![];
     for &dir in &DIRECTIONS {
         let to = from.advance(dir);
-        if layer.has(to) && !layer.reachable(from, to) {
+        if layer.has(to)
+            && !blocked_cells.contains(&to)
+            && !layer.reachable(from, to)
+        {
             result.push(dir);
         }
     }
     result
 }
 
-fn expand_randomly<R>(layer: &mut Layer, from: Coord, rng: &mut R)
-    -> Option<Dir>
+fn expand_randomly<R>(
+    layer: &mut Layer, from: Coord, blocked_cells: &HashSet<Coord>,
+    rng: &mut R
+) -> Option<Dir>
     where R: Rng + ?Sized
 {
-    let moves = possible_moves(&layer, from);
+    let moves = possible_moves(&layer, from, blocked_cells);
     moves.as_slice().choose(rng).map(|&dir| {
         layer.join(from, dir);
         dir
@@ -31,20 +37,24 @@ fn expand_randomly<R>(layer: &mut Layer, from: Coord, rng: &mut R)
 }
 
 // There is probably space for optimization here.
-pub fn generate<R: Rng + ?Sized>(layer: &mut Layer, origin: Coord, rng: &mut R) {
-    assert!(layer.has(origin));
-    let mut queue: Vec<Coord> = vec![origin];
+pub fn generate<R: Rng + ?Sized>(
+    layer: &mut Layer,
+    spawn_points: &[Coord],
+    blocked_cells: &HashSet<Coord>,
+    rng: &mut R
+) {
+    let mut queue: Vec<Coord> = spawn_points.into();
 
     while !queue.is_empty() {
         while queue.iter().last().map_or(false,
-            |cell| possible_moves(&layer, *cell).is_empty()
+            |cell| possible_moves(&layer, *cell, blocked_cells).is_empty()
         ) {
             queue.pop();
         }
         let mut new_cell: Option<Coord> = None;
         for cell in queue.iter().rev() {
             if rng.gen_bool(CHANCE_TO_BE_NEXT) {
-                if let Some(dir) = expand_randomly(layer, *cell, rng) {
+                if let Some(dir) = expand_randomly(layer, *cell, blocked_cells, rng) {
                     new_cell = Some(cell.advance(dir));
                 }
                 break;
