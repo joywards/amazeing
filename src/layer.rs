@@ -32,7 +32,7 @@ impl Layer {
     }
 
     pub fn add<C: Into<Coord>>(&mut self, coord: C) {
-        self.cells.insert(coord.into(), Default::default());
+        self.cells.entry(coord.into()).or_insert_with(Default::default);
     }
 
     pub fn passable(&self, from: Coord, dir: Dir) -> bool {
