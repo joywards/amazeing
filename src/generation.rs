@@ -10,6 +10,10 @@ use rand::seq::SliceRandom;
 const CHANCE_TO_BE_NEXT: f64 = 0.07;
 
 fn possible_moves(layer: &Layer, from: Coord, blocked_cells: &HashSet<Coord>) -> Vec<Dir> {
+    if !layer.has(from) {
+        return vec![];
+    }
+
     let mut result= vec![];
     for &dir in &DIRECTIONS {
         let to = from.advance(dir);
