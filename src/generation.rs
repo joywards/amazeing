@@ -39,11 +39,11 @@ fn expand_randomly<R>(
 // There is probably space for optimization here.
 pub fn generate<R: Rng + ?Sized>(
     layer: &mut Layer,
-    spawn_points: &[Coord],
+    spawn_points: impl Iterator<Item=Coord>,
     blocked_cells: &HashSet<Coord>,
     rng: &mut R
 ) {
-    let mut queue: Vec<Coord> = spawn_points.into();
+    let mut queue: Vec<Coord> = spawn_points.collect();
 
     while !queue.is_empty() {
         while queue.iter().last().map_or(false,
@@ -79,7 +79,7 @@ fn test_generation() {
             layer.add((x, y));
         }
     }
-    generate(&mut layer, Coord::new(0, 0), &mut rng);
+    generate(&mut layer, std::iter::once(Coord::new(0, 0)), &HashSet::new(), &mut rng);
     for x in -100..100 {
         for y in -100..100 {
             assert!(layer.reachable((0, 0).into(), (x, y).into()));
