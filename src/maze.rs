@@ -67,6 +67,10 @@ impl Maze {
         &self.current_layer
     }
 
+    pub fn position(&self) -> Coord {
+        self.position
+    }
+
     pub fn add_layer(&self, layer: Layer) -> usize {
         let mut layers = self.layers.lock().unwrap();
         layers.push(MazeLayer{

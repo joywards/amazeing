@@ -85,7 +85,7 @@ fn render_square(canvas: &mut Canvas, coord: Coord) {
 fn main() {
     let shape: Vec<_> = make_circle(SIZE).collect();
     let visible_area: Region = make_circle(12).collect::<HashSet<_>>().into();
-    let cloned_area = visible_area.shifted_by(Coord::new(5, 5));
+    let cloned_area = visible_area.shifted_by(Coord::new(0, 0));
 
     let mut rng = SmallRng::seed_from_u64(2);
     let first = generate_layer(&shape, (0, 0).into(), &mut rng);
@@ -95,9 +95,9 @@ fn main() {
         &cloned_area,
         &mut rng
     );
-    let layers = [&first, &second];
-    let mut level = 0;
-    let maze = Maze::new(first.clone(), (0, 0).into());
+    let mut maze = Maze::new(first.clone(), (0, 0).into());
+    maze.add_layer(second);
+    maze.add_transition(Coord::new(0, 0), Dir::LEFT, 0, 1);
 
     let sdl_context: sdl2::Sdl = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -119,17 +119,23 @@ fn main() {
                     break 'running
                 },
                 Event::KeyDown { keycode: Some(Keycode::Down), .. } => {
-                    level = 0;
+                    maze.try_move(Dir::DOWN);
+                },
+                Event::KeyDown { keycode: Some(Keycode::Right), .. } => {
+                    maze.try_move(Dir::RIGHT);
                 },
                 Event::KeyDown { keycode: Some(Keycode::Up), .. } => {
-                    level = 1;
+                    maze.try_move(Dir::UP);
+                },
+                Event::KeyDown { keycode: Some(Keycode::Left), .. } => {
+                    maze.try_move(Dir::LEFT);
                 },
                 _ => {}
             }
         }
 
-        render_layer(&mut canvas, layers[level]);
-        render_square(&mut canvas, (0, 0).into());
+        render_layer(&mut canvas, maze.current_layer());
+        render_square(&mut canvas, maze.position());
         for &cell in cloned_area.boundary() {
             if first.has(cell) {
                 render_square(&mut canvas, cell);
