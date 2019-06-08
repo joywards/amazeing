@@ -6,6 +6,10 @@ mod layer;
 mod geometry;
 mod generation;
 mod maze;
+mod region;
+mod build;
+
+use std::collections::HashSet;
 
 use sdl2::pixels::Color;
 use sdl2::event::Event;
@@ -15,19 +19,23 @@ use sdl2::rect::Rect;
 use std::time::Duration;
 
 use layer::Layer;
-use generation::generate;
 use geometry::coord::Coord;
 use geometry::direction::Dir;
-use rand::SeedableRng;
-use rand::rngs::SmallRng;
 use itertools::Itertools;
+
+use region::Region;
+use build::{make_circle, generate_with_copied_region, generate_layer};
+use maze::Maze;
+
+use rand::rngs::SmallRng;
+use rand::SeedableRng;
 
 type Canvas = render::Canvas<sdl2::video::Window>;
 
 const CELL_SIZE: u32 = 17;
 const WINDOW_WIDTH: u32 = 1400;
 const WINDOW_HEIGHT: u32 = 900;
-const SIZE: i32 = 25;
+const SIZE: i32 = 20;
 
 fn to_view(scene_coord: Coord) -> Coord {
     let scene_camera = Coord::new(0, 0);
@@ -68,28 +76,28 @@ fn render_layer(canvas: &mut Canvas, layer: &Layer) {
     }
 }
 
-fn render_center_square(canvas: &mut Canvas) {
-    canvas.set_draw_color(Color::RGB(128, 128, 128));
-    let view_coord = to_view((0, 0).into());
+fn render_square(canvas: &mut Canvas, coord: Coord) {
+    canvas.set_draw_color(Color::RGBA(192, 192, 192, 32));
+    let view_coord = to_view(coord);
     fill_rect(canvas, view_coord.x, view_coord.y, CELL_SIZE - 1, CELL_SIZE - 1);
 }
 
-fn generate_layer(seed: u64) -> Layer {
-    let mut layer = Layer::default();
-    for x in -SIZE..=SIZE {
-        for y in -SIZE..=SIZE {
-            if x.pow(2) + y.pow(2) < SIZE.pow(2) {
-                layer.add((x, y));
-            }
-        }
-    }
-    let mut rng = SmallRng::seed_from_u64(seed);
-    generate(&mut layer, &[Coord::new(0, 0)], &Default::default(), &mut rng);
-    layer
-}
-
 fn main() {
-    let layer = generate_layer(0);
+    let shape: Vec<_> = make_circle(SIZE).collect();
+    let visible_area: Region = make_circle(12).collect::<HashSet<_>>().into();
+    let cloned_area = visible_area.shifted_by(Coord::new(5, 5));
+
+    let mut rng = SmallRng::seed_from_u64(2);
+    let first = generate_layer(&shape, (0, 0).into(), &mut rng);
+    let second = generate_with_copied_region(
+        shape.iter().cloned(),
+        &first,
+        &cloned_area,
+        &mut rng
+    );
+    let layers = [&first, &second];
+    let mut level = 0;
+    let maze = Maze::new(first.clone(), (0, 0).into());
 
     let sdl_context: sdl2::Sdl = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -110,12 +118,23 @@ fn main() {
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running
                 },
+                Event::KeyDown { keycode: Some(Keycode::Down), .. } => {
+                    level = 0;
+                },
+                Event::KeyDown { keycode: Some(Keycode::Up), .. } => {
+                    level = 1;
+                },
                 _ => {}
             }
         }
 
-        render_layer(&mut canvas, &layer);
-        render_center_square(&mut canvas);
+        render_layer(&mut canvas, layers[level]);
+        render_square(&mut canvas, (0, 0).into());
+        for &cell in cloned_area.boundary() {
+            if first.has(cell) {
+                render_square(&mut canvas, cell);
+            }
+        }
 
         canvas.present();
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
