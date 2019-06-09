@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Dir {
     RIGHT,
     DOWN,
@@ -25,6 +25,7 @@ impl Dir {
         }
     }
 
+    #[allow(dead_code)]
     pub fn rotate_anticlockwise(self) -> Dir {
         match self {
             Dir::RIGHT => Dir::UP,

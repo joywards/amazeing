@@ -8,6 +8,7 @@ mod generation;
 mod maze;
 mod region;
 mod build;
+mod traversal;
 
 use std::collections::HashSet;
 
@@ -26,6 +27,7 @@ use itertools::Itertools;
 use region::Region;
 use build::{make_circle, generate_with_copied_region, generate_layer};
 use maze::Maze;
+use traversal::dfs;
 
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
@@ -76,8 +78,8 @@ fn render_layer(canvas: &mut Canvas, layer: &Layer) {
     }
 }
 
-fn render_square(canvas: &mut Canvas, coord: Coord) {
-    canvas.set_draw_color(Color::RGBA(192, 192, 192, 32));
+fn render_square(canvas: &mut Canvas, coord: Coord, color: Color) {
+    canvas.set_draw_color(color);
     let view_coord = to_view(coord);
     fill_rect(canvas, view_coord.x, view_coord.y, CELL_SIZE - 1, CELL_SIZE - 1);
 }
@@ -97,7 +99,12 @@ fn main() {
     );
     let mut maze = Maze::new(first.clone(), (0, 0).into());
     maze.add_layer(second);
-    maze.add_transition(Coord::new(0, 0), Dir::LEFT, 0, 1);
+
+    let layer_info = dfs(
+        &first,
+        (0, 0).into(), Some(Dir::DOWN),
+        &visible_area
+    );
 
     let sdl_context: sdl2::Sdl = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -135,12 +142,23 @@ fn main() {
         }
 
         render_layer(&mut canvas, maze.current_layer());
-        render_square(&mut canvas, maze.position());
-        for &cell in cloned_area.boundary() {
+        for &cell in cloned_area.shifted_by(maze.position()).boundary() {
             if first.has(cell) {
-                render_square(&mut canvas, cell);
+                render_square(&mut canvas, cell, Color::RGB(240, 240, 240));
             }
         }
+
+        for (&coord, coord_info) in layer_info.coords.iter() {
+            if coord_info.escapable {
+                render_square(&mut canvas, coord, Color::RGB(192, 192, 192));
+            }
+        }
+
+        for &coord in &layer_info.leaf_escapables {
+            render_square(&mut canvas, coord, Color::RGB(220, 192, 192));
+        }
+
+        render_square(&mut canvas, maze.position(), Color::RGBA(0, 192, 0, 255));
 
         canvas.present();
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
