@@ -25,9 +25,9 @@ use geometry::direction::Dir;
 use itertools::Itertools;
 
 use region::Region;
-use build::{make_circle, generate_with_copied_region, generate_layer};
+use build::{make_circle, generate_layer, add_layer_seamlessly};
 use maze::Maze;
-use traversal::dfs;
+use traversal::{dfs, LayerInfo};
 
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
@@ -84,27 +84,33 @@ fn render_square(canvas: &mut Canvas, coord: Coord, color: Color) {
     fill_rect(canvas, view_coord.x, view_coord.y, CELL_SIZE - 1, CELL_SIZE - 1);
 }
 
-fn main() {
+fn build_maze(seed: u64, visible_area: &Region) -> (Maze, LayerInfo) {
+    let mut rng = SmallRng::seed_from_u64(seed);
     let shape: Vec<_> = make_circle(SIZE).collect();
-    let visible_area: Region = make_circle(12).collect::<HashSet<_>>().into();
-    let cloned_area = visible_area.shifted_by(Coord::new(0, 0));
 
-    let mut rng = SmallRng::seed_from_u64(2);
     let first = generate_layer(&shape, (0, 0).into(), &mut rng);
-    let second = generate_with_copied_region(
-        shape.iter().cloned(),
-        &first,
-        &cloned_area,
-        &mut rng
-    );
-    let mut maze = Maze::new(first.clone(), (0, 0).into());
-    maze.add_layer(second);
-
     let layer_info = dfs(
         &first,
         (0, 0).into(), Some(Dir::DOWN),
-        &visible_area
+        visible_area
     );
+    let mut maze = Maze::new(first, (0, 0).into());
+
+    for &coord in &layer_info.leaf_escapables {
+        add_layer_seamlessly(
+            &mut maze,
+            0, coord, layer_info.coords[&coord].came_from.unwrap(),
+            shape.iter().cloned(),
+            visible_area,
+            &mut rng
+        );
+    }
+    (maze, layer_info)
+}
+
+fn main() {
+    let visible_area: Region = make_circle(12).collect::<HashSet<_>>().into();
+    let (mut maze, first_layer_info) = build_maze(0, &visible_area);
 
     let sdl_context: sdl2::Sdl = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -142,19 +148,19 @@ fn main() {
         }
 
         render_layer(&mut canvas, maze.current_layer());
-        for &cell in cloned_area.shifted_by(maze.position()).boundary() {
-            if first.has(cell) {
+        for &cell in visible_area.shifted_by(maze.position()).boundary() {
+            if maze.current_layer().has(cell) {
                 render_square(&mut canvas, cell, Color::RGB(240, 240, 240));
             }
         }
 
-        for (&coord, coord_info) in layer_info.coords.iter() {
+        for (&coord, coord_info) in first_layer_info.coords.iter() {
             if coord_info.escapable {
                 render_square(&mut canvas, coord, Color::RGB(192, 192, 192));
             }
         }
 
-        for &coord in &layer_info.leaf_escapables {
+        for &coord in &first_layer_info.leaf_escapables {
             render_square(&mut canvas, coord, Color::RGB(220, 192, 192));
         }
 

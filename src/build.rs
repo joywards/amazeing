@@ -3,7 +3,8 @@ use rand::Rng;
 
 use crate::layer::Layer;
 use crate::region::Region;
-use crate::geometry::direction::DIRECTIONS;
+use crate::maze::Maze;
+use crate::geometry::direction::{DIRECTIONS, Dir};
 use crate::geometry::coord::Coord;
 use crate::generation::generate;
 
@@ -34,6 +35,31 @@ pub fn generate_layer<'l>(
     layer
 }
 
+fn find_cell_at_boundary(
+    layer: &Layer,
+    coord: Coord, back: Dir,
+    region: &Region
+) -> Option<(Coord, Dir)> {
+    let mut dir = back.rotate_clockwise();
+    while dir != back {
+        if layer.passable(coord, dir) {
+            let to = coord.advance(dir);
+
+            if region.boundary().contains(&to) {
+                return Some((to, dir));
+            }
+
+            if let Some((escape, _)) = find_cell_at_boundary(
+                layer, to, dir.opposite(), region
+            ) {
+                return Some((escape, dir));
+            }
+        }
+        dir = dir.rotate_clockwise();
+    }
+    None
+}
+
 fn with_copied_region(source: &Layer, region: &Region) -> Layer {
     let mut result = Layer::default();
     for &cell in region.cells().iter()
@@ -53,17 +79,32 @@ fn with_copied_region(source: &Layer, region: &Region) -> Layer {
     result
 }
 
-pub fn generate_with_copied_region<'l>(
+pub fn add_layer_seamlessly(
+    maze: &mut Maze,
+    source_layer_index: usize,
+    source_coord: Coord,
+    back: Dir,
     shape: impl Iterator<Item=Coord>,
-    source: &Layer,
-    region: impl Into<&'l Region>,
+    visible_area: &Region,
     rng: &mut impl Rng
-) -> Layer {
-    let region = region.into();
-    let mut layer = with_copied_region(source, &region);
+) -> usize {
+    let source_layer = maze.clone_layer(source_layer_index);
+
+    let (escape, escape_dir) = find_cell_at_boundary(
+        &source_layer,
+        source_coord, back,
+        &visible_area.shifted_by(source_coord)
+    ).expect("Trying to add transition at non-escapable cell.");
+
+    let copy_region = visible_area.shifted_by(source_coord);
+    let mut new_layer = with_copied_region(&source_layer, &copy_region);
     for coord in shape {
-        layer.add(coord);
+        new_layer.add(coord);
     }
-    generate(&mut layer, region.boundary().iter().cloned(), region.cells(), rng);
-    layer
+    generate(&mut new_layer, std::iter::once(escape), copy_region.cells(), rng);
+
+    let new_layer_index = maze.add_layer(new_layer);
+    maze.add_transition(source_coord, escape_dir, source_layer_index, new_layer_index);
+
+    new_layer_index
 }

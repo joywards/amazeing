@@ -19,6 +19,8 @@ pub struct CoordInfo {
     pub has_escapable_below: bool,
 
     pub depth: u32,
+
+    pub came_from: Option<Dir>,
 }
 
 #[derive(Default, Debug)]
@@ -53,7 +55,8 @@ fn dfs_impl(
     let prev = info.coords.insert(coord, CoordInfo{
         escapable: false,
         has_escapable_below: false,
-        depth
+        depth,
+        came_from: Some(from)
     });
     if prev.is_some() {
         panic!("Layer contains a loop");

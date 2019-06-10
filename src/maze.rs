@@ -71,6 +71,10 @@ impl Maze {
         self.position
     }
 
+    pub fn clone_layer(&self, i: usize) -> Layer {
+        self.layers.lock().unwrap()[i].layer.clone()
+    }
+
     pub fn add_layer(&self, layer: Layer) -> usize {
         let mut layers = self.layers.lock().unwrap();
         layers.push(MazeLayer{
