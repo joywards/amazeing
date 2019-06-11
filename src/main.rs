@@ -96,7 +96,7 @@ fn build_maze(seed: u64, visible_area: &Region) -> (Maze, LayerInfo) {
     let first = generate_layer(&shape, (0, 0).into(), &mut rng);
     let layer_info = dfs(
         &first,
-        (0, 0).into(), Some(Dir::DOWN),
+        (0, 0).into(), None,
         &extended_visible_area
     );
     let mut maze = Maze::new(first, (0, 0).into());

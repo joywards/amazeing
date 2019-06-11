@@ -37,10 +37,23 @@ pub fn dfs(
     start: Coord, from: Option<Dir>,
     visible_area: &Region
 ) -> LayerInfo {
-    let from = from.expect("Passing dir=None is not implemented yet");
     let mut info = LayerInfo::default();
     let mut visible_trace = HashSet::default();
-    dfs_impl(layer, start, from, &mut info, &mut visible_trace, visible_area, 0);
+
+    if let Some(from) = from {
+        dfs_impl(layer, start, from, &mut info, &mut visible_trace, visible_area, 0);
+    } else {
+        let back = Dir::DOWN;
+        dfs_impl(layer, start, back, &mut info, &mut visible_trace, visible_area, 0);
+        if layer.passable(start, back) {
+            dfs_impl(
+                layer, start.advance(back), back.opposite(),
+                &mut info, &mut visible_trace, visible_area, 1
+            );
+        }
+        info.coords.get_mut(&start).unwrap().came_from = None;
+    };
+
     info
 }
 
