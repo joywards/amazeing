@@ -88,12 +88,21 @@ pub fn add_layer_seamlessly(
     visible_area: &Region,
     rng: &mut impl Rng
 ) -> usize {
+    // Sometimes "escape cell" gets cornered and no passage from it can be
+    // created after copying region from previous layer.
+    // This workaround fixes most of the cases, but further work is required to
+    // guarantee that generation will always work.
+    let extended_visible_area = Region::from(
+        visible_area.cells().union(visible_area.boundary())
+            .cloned().collect::<std::collections::HashSet<_>>()
+    );
+
     let source_layer = maze.clone_layer(source_layer_index);
 
     let (escape, escape_dir) = find_cell_at_boundary(
         &source_layer,
         source_coord, back,
-        &visible_area.shifted_by(source_coord)
+        &extended_visible_area.shifted_by(source_coord)
     ).expect("Trying to add transition at non-escapable cell.");
 
     let copy_region = visible_area.shifted_by(source_coord);

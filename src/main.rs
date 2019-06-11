@@ -87,12 +87,17 @@ fn render_square(canvas: &mut Canvas, coord: Coord, color: Color) {
 fn build_maze(seed: u64, visible_area: &Region) -> (Maze, LayerInfo) {
     let mut rng = SmallRng::seed_from_u64(seed);
     let shape: Vec<_> = make_circle(SIZE).collect();
+    // See explanation at `add_layer_seamlessly`.
+    let extended_visible_area = Region::from(
+        visible_area.cells().union(visible_area.boundary())
+            .cloned().collect::<HashSet<_>>()
+    );
 
     let first = generate_layer(&shape, (0, 0).into(), &mut rng);
     let layer_info = dfs(
         &first,
         (0, 0).into(), Some(Dir::DOWN),
-        visible_area
+        &extended_visible_area
     );
     let mut maze = Maze::new(first, (0, 0).into());
 
