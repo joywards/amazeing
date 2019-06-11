@@ -60,23 +60,21 @@ fn find_cell_at_boundary(
     None
 }
 
-fn with_copied_region(source: &Layer, region: &Region) -> Layer {
-    let mut result = Layer::default();
+fn copy_region(src: &Layer, dst: &mut Layer, region: &Region) {
     for &cell in region.cells().iter()
         .chain(region.boundary())
     {
-        if source.has(cell) {
-            result.add(cell);
+        if src.has(cell) {
+            dst.add(cell);
         }
     }
     for &cell in region.cells() {
         for &dir in &DIRECTIONS {
-            if source.passable(cell, dir) {
-                result.join(cell, dir);
+            if src.passable(cell, dir) {
+                dst.join(cell, dir);
             }
         }
     }
-    result
 }
 
 pub fn add_layer_seamlessly(
@@ -105,12 +103,13 @@ pub fn add_layer_seamlessly(
         &extended_visible_area.shifted_by(source_coord)
     ).expect("Trying to add transition at non-escapable cell.");
 
-    let copy_region = visible_area.shifted_by(source_coord);
-    let mut new_layer = with_copied_region(&source_layer, &copy_region);
+    let region_to_copy = visible_area.shifted_by(source_coord);
+    let mut new_layer = Layer::default();
+    copy_region(&source_layer, &mut new_layer, &region_to_copy);
     for coord in shape {
         new_layer.add(coord);
     }
-    generate(&mut new_layer, std::iter::once(escape), copy_region.cells(), rng);
+    generate(&mut new_layer, std::iter::once(escape), region_to_copy.cells(), rng);
 
     let new_layer_index = maze.add_layer(new_layer);
     maze.add_transition(source_coord, escape_dir, source_layer_index, new_layer_index);
