@@ -14,8 +14,6 @@ struct Transition {
 struct MazeLayer {
     layer: Layer,
     transitions: HashMap<Coord, Transition>,
-    entrance: Option<Coord>,
-    entrance_from: Option<Dir>,
 }
 
 pub struct Maze {
@@ -39,8 +37,6 @@ impl Maze {
             layers: Mutex::new(vec![MazeLayer{
                 layer: layer.clone(),
                 transitions: HashMap::new(),
-                entrance: Some(spawn_point),
-                entrance_from: None,
             }]),
             position: spawn_point,
             current_layer_index: 0,
@@ -71,6 +67,10 @@ impl Maze {
         &self.current_layer
     }
 
+    pub fn current_layer_index(&self) -> usize {
+        self.current_layer_index
+    }
+
     pub fn position(&self) -> Coord {
         self.position
     }
@@ -84,8 +84,6 @@ impl Maze {
         layers.push(MazeLayer{
             layer,
             transitions: HashMap::new(),
-            entrance: None,
-            entrance_from: None,
         });
         layers.len() - 1
     }
@@ -100,10 +98,6 @@ impl Maze {
         let to = &mut layers[to_index];
         assert!(to.layer.passable(coord, dir));
         to.transitions.insert(coord, Transition{dest_layer: from_index});
-
-        assert!(to.entrance.is_none());
-        to.entrance = Some(coord.advance(dir));
-        to.entrance_from = Some(dir.opposite());
     }
 }
 

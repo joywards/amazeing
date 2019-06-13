@@ -1,5 +1,6 @@
 use itertools::Itertools;
-use rand::Rng;
+use rand::rngs::SmallRng;
+use rand::SeedableRng;
 
 use crate::layer::Layer;
 use crate::region::Region;
@@ -7,6 +8,7 @@ use crate::maze::Maze;
 use crate::geometry::direction::{DIRECTIONS, Dir};
 use crate::geometry::coord::Coord;
 use crate::generation::generate;
+use crate::traversal;
 
 pub fn make_circle(radius: i32) -> impl Iterator<Item=Coord> {
     (-radius..=radius).cartesian_product(-radius..=radius)
@@ -17,22 +19,6 @@ pub fn make_circle(radius: i32) -> impl Iterator<Item=Coord> {
                 None
             }
         })
-}
-
-pub fn generate_layer<'l>(
-    shape: impl IntoIterator<Item=&'l Coord>,
-    spawn_point: Coord,
-    rng: &mut impl Rng
-) -> Layer {
-    use std::iter::once;
-
-    let mut layer = Layer::default();
-    for &coord in shape {
-        layer.add(coord);
-    }
-    generate(&mut layer, once(spawn_point), &Default::default(), rng);
-
-    layer
 }
 
 fn find_cell_at_boundary(
@@ -77,42 +63,125 @@ fn copy_region(src: &Layer, dst: &mut Layer, region: &Region) {
     }
 }
 
-pub fn add_layer_seamlessly(
-    maze: &mut Maze,
-    source_layer_index: usize,
-    source_coord: Coord,
-    back: Dir,
-    shape: impl Iterator<Item=Coord>,
-    visible_area: &Region,
-    rng: &mut impl Rng
-) -> usize {
+
+pub struct MazeBuilder {
+    maze: Option<Maze>,
+    layer_info: Vec<traversal::Info>,
+    visible_area: Option<Region>,
     // Sometimes "escape cell" gets cornered and no passage from it can be
     // created after copying region from previous layer.
+    // To fix this we use a wider visible area when looking for escape cells.
     // This workaround fixes most of the cases, but further work is required to
     // guarantee that generation will always work.
-    let extended_visible_area = Region::from(
-        visible_area.cells().union(visible_area.boundary())
-            .cloned().collect::<std::collections::HashSet<_>>()
-    );
+    extended_visible_area: Option<Region>,
+    rng: SmallRng,
+}
 
-    let source_layer = maze.clone_layer(source_layer_index);
-
-    let (escape, escape_dir) = find_cell_at_boundary(
-        &source_layer,
-        source_coord, back,
-        &extended_visible_area.shifted_by(source_coord)
-    ).expect("Trying to add transition at non-escapable cell.");
-
-    let region_to_copy = visible_area.shifted_by(source_coord);
-    let mut new_layer = Layer::default();
-    copy_region(&source_layer, &mut new_layer, &region_to_copy);
-    for coord in shape {
-        new_layer.add(coord);
+impl MazeBuilder {
+    pub fn new(seed: u64) -> MazeBuilder {
+        MazeBuilder{
+            maze: None, layer_info: Vec::new(),
+            visible_area: None, extended_visible_area: None,
+            rng: SmallRng::seed_from_u64(seed)
+        }
     }
-    generate(&mut new_layer, std::iter::once(escape), region_to_copy.cells(), rng);
 
-    let new_layer_index = maze.add_layer(new_layer);
-    maze.add_transition(source_coord, escape_dir, source_layer_index, new_layer_index);
+    pub fn set_visible_area(&mut self, visible_area: Region) {
+        self.visible_area = Some(visible_area);
+        self.extended_visible_area = Some(Region::from(
+            self.visible_area.as_ref().unwrap().cells().union(
+                self.visible_area.as_ref().unwrap().boundary()
+            ).cloned().collect::<std::collections::HashSet<_>>()
+        ));
+    }
 
-    new_layer_index
+    pub fn into_maze(self) -> Maze {
+        self.maze.unwrap()
+    }
+
+    /// Should be used for debug purposes only.
+    pub fn into_maze_and_layer_info(self) -> (Maze, Vec<traversal::Info>) {
+        (self.maze.unwrap(), self.layer_info)
+    }
+
+    pub fn add_layer<'l>(
+        &mut self,
+        source_layer_index: usize,
+        source_coord: Coord,
+        back: Dir,
+        shape: impl IntoIterator<Item=&'l Coord>,
+    ) -> usize {
+        let maze = self.maze.as_mut().unwrap();
+        let source_layer = maze.clone_layer(source_layer_index);
+
+        let (escape, escape_dir) = find_cell_at_boundary(
+            &source_layer,
+            source_coord, back,
+            &self.extended_visible_area.as_ref().unwrap().shifted_by(source_coord)
+        ).expect("Trying to add transition at non-escapable cell.");
+
+        let region_to_copy = self.visible_area.as_ref().unwrap().shifted_by(source_coord);
+        let mut new_layer = Layer::default();
+        copy_region(&source_layer, &mut new_layer, &region_to_copy);
+        for &coord in shape {
+            new_layer.add(coord);
+        }
+        generate(
+            &mut new_layer, std::iter::once(escape), region_to_copy.cells(),
+            &mut self.rng
+        );
+
+        self.layer_info.push(traversal::dfs(
+                &new_layer, source_coord, Some(back),
+                self.extended_visible_area.as_ref().unwrap()
+            )
+        );
+
+        let new_layer_index = maze.add_layer(new_layer);
+        maze.add_transition(source_coord, escape_dir, source_layer_index, new_layer_index);
+
+        assert_eq!(new_layer_index, self.layer_info.len() - 1);
+        new_layer_index
+    }
+
+    pub fn generate_first_layer<'l>(
+        &mut self,
+        shape: impl IntoIterator<Item=&'l Coord>,
+        spawn_point: Coord
+    ) -> usize {
+        use std::iter::once;
+
+        let mut layer = Layer::default();
+        for &coord in shape {
+            layer.add(coord);
+        }
+        generate(&mut layer, once(spawn_point), &Default::default(), &mut self.rng);
+
+        self.layer_info.push(traversal::dfs(
+                &layer, spawn_point, None, self.extended_visible_area.as_ref().unwrap()
+            )
+        );
+        self.maze = Some(Maze::new(layer, spawn_point));
+        0
+    }
+
+    pub fn add_layer_from_deepest_point<'l>(
+        &mut self,
+        src_layer: usize,
+        shape: impl IntoIterator<Item=&'l Coord>
+    ) -> usize {
+        let info = &self.layer_info[src_layer];
+        let deepest = *info.leaf_escapables.iter().max_by_key(
+            |coord| info.coords[&coord].depth
+        ).unwrap();
+        let back = info.coords[&deepest].came_from.expect(
+            "Seems that layer has only one escapable cell"
+        );
+
+        self.add_layer(
+            src_layer,
+            deepest, back,
+            shape
+        )
+    }
 }

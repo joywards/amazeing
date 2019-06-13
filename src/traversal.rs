@@ -24,7 +24,7 @@ pub struct CoordInfo {
 }
 
 #[derive(Default, Debug)]
-pub struct LayerInfo {
+pub struct Info {
     pub coords: HashMap<Coord, CoordInfo>,
 
     /// Contains locations of cells which are "escapable" (see above) but
@@ -36,8 +36,8 @@ pub fn dfs(
     layer: &Layer,
     start: Coord, from: Option<Dir>,
     visible_area: &Region
-) -> LayerInfo {
-    let mut info = LayerInfo::default();
+) -> Info {
+    let mut info = Info::default();
     let mut visible_trace = HashSet::default();
 
     if let Some(from) = from {
@@ -60,7 +60,7 @@ pub fn dfs(
 fn dfs_impl(
     layer: &Layer,
     coord: Coord, from: Dir,
-    info: &mut LayerInfo,
+    info: &mut Info,
     visible_trace: &mut HashSet<Coord>,
     visible_area: &Region,
     depth: u32

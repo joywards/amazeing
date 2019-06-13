@@ -25,12 +25,9 @@ use geometry::direction::Dir;
 use itertools::Itertools;
 
 use region::Region;
-use build::{make_circle, generate_layer, add_layer_seamlessly};
+use build::{make_circle, MazeBuilder};
 use maze::Maze;
-use traversal::{dfs, LayerInfo};
-
-use rand::rngs::SmallRng;
-use rand::SeedableRng;
+use traversal::Info;
 
 type Canvas = render::Canvas<sdl2::video::Window>;
 
@@ -84,38 +81,21 @@ fn render_square(canvas: &mut Canvas, coord: Coord, color: Color) {
     fill_rect(canvas, view_coord.x, view_coord.y, CELL_SIZE - 1, CELL_SIZE - 1);
 }
 
-fn build_maze(seed: u64, visible_area: &Region) -> (Maze, LayerInfo) {
-    let mut rng = SmallRng::seed_from_u64(seed);
+fn build_maze(seed: u64, visible_area: &Region) -> (Maze, Vec<Info>) {
     let shape: Vec<_> = make_circle(SIZE).collect();
-    // See explanation at `add_layer_seamlessly`.
-    let extended_visible_area = Region::from(
-        visible_area.cells().union(visible_area.boundary())
-            .cloned().collect::<HashSet<_>>()
-    );
 
-    let first = generate_layer(&shape, (0, 0).into(), &mut rng);
-    let layer_info = dfs(
-        &first,
-        (0, 0).into(), None,
-        &extended_visible_area
-    );
-    let mut maze = Maze::new(first, (0, 0).into());
-
-    for &coord in &layer_info.leaf_escapables {
-        add_layer_seamlessly(
-            &mut maze,
-            0, coord, layer_info.coords[&coord].came_from.unwrap(),
-            shape.iter().cloned(),
-            visible_area,
-            &mut rng
-        );
+    let mut builder = MazeBuilder::new(seed);
+    builder.set_visible_area(visible_area.clone());
+    let mut last = builder.generate_first_layer(&shape, (0, 0).into());
+    for _ in 0..9 {
+        last = builder.add_layer_from_deepest_point(last, &shape);
     }
-    (maze, layer_info)
+    builder.into_maze_and_layer_info()
 }
 
 fn main() {
     let visible_area: Region = make_circle(12).collect::<HashSet<_>>().into();
-    let (mut maze, first_layer_info) = build_maze(0, &visible_area);
+    let (mut maze, layer_info) = build_maze(0, &visible_area);
 
     let sdl_context: sdl2::Sdl = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -159,13 +139,13 @@ fn main() {
             }
         }
 
-        for (&coord, coord_info) in first_layer_info.coords.iter() {
+        for (&coord, coord_info) in layer_info[maze.current_layer_index()].coords.iter() {
             if coord_info.escapable {
                 render_square(&mut canvas, coord, Color::RGB(192, 192, 192));
             }
         }
 
-        for &coord in &first_layer_info.leaf_escapables {
+        for &coord in &layer_info[maze.current_layer_index()].leaf_escapables {
             render_square(&mut canvas, coord, Color::RGB(220, 192, 192));
         }
 
