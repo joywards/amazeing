@@ -21,7 +21,7 @@ pub struct Maze {
     position: Coord,
     current_layer_index: usize,
     // A copy of current layer is made for avoiding
-    // thread syncronization during rendering.
+    // thread synchronization during rendering.
     current_layer: Layer,
 }
 
