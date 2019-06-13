@@ -91,3 +91,37 @@ fn test_generation() {
     }
 }
 
+#[cfg(feature = "bench")]
+mod benches {
+
+extern crate test;
+
+use rand::rngs::SmallRng;
+use rand::SeedableRng;
+
+use crate::build::make_circle;
+use crate::layer::Layer;
+
+#[bench]
+fn bench_generation(b: &mut test::Bencher) {
+    use crate::generation::generate;
+
+    let mut layer = Layer::default();
+    for coord in make_circle(30) {
+        layer.add(coord);
+    }
+    let layer = &layer;
+    let mut rng = SmallRng::seed_from_u64(0);
+    let blocked_cells = std::collections::HashSet::new();
+
+    b.iter(|| {
+        generate(
+            &mut layer.clone(),
+            std::iter::once((0, 0).into()),
+            &blocked_cells,
+            &mut rng
+        );
+    });
+}
+
+}

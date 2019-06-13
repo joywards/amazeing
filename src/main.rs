@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "bench", feature(test))]
+
 extern crate sdl2;
 extern crate itertools;
 
