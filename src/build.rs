@@ -110,10 +110,11 @@ impl MazeBuilder {
         &mut self,
         source_layer_index: usize,
         source_coord: Coord,
-        back: Dir,
     ) -> usize {
         let maze = self.maze.as_mut().unwrap();
         let source_layer = maze.clone_layer(source_layer_index);
+        let back = self.layer_info[source_layer_index].coords[&source_coord]
+            .came_from.unwrap();
 
         let (escape, escape_dir) = find_cell_at_boundary(
             &source_layer,
@@ -173,13 +174,10 @@ impl MazeBuilder {
         let deepest = *info.leaf_escapables.iter().max_by_key(
             |coord| info.coords[&coord].depth
         ).unwrap();
-        let back = info.coords[&deepest].came_from.expect(
-            "Seems that layer has only one escapable cell"
-        );
 
         self.add_layer(
             src_layer,
-            deepest, back
+            deepest
         )
     }
 }
