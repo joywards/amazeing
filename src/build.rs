@@ -67,6 +67,8 @@ fn copy_region(src: &Layer, dst: &mut Layer, region: &Region) {
 pub struct MazeBuilder {
     maze: Option<Maze>,
     layer_info: Vec<traversal::Info>,
+
+    shape: Vec<Coord>,
     visible_area: Option<Region>,
     // Sometimes "escape cell" gets cornered and no passage from it can be
     // created after copying region from previous layer.
@@ -78,9 +80,9 @@ pub struct MazeBuilder {
 }
 
 impl MazeBuilder {
-    pub fn new(seed: u64) -> MazeBuilder {
+    pub fn new(seed: u64, shape: Vec<Coord>) -> MazeBuilder {
         MazeBuilder{
-            maze: None, layer_info: Vec::new(),
+            maze: None, layer_info: Vec::new(), shape,
             visible_area: None, extended_visible_area: None,
             rng: SmallRng::seed_from_u64(seed)
         }
@@ -104,12 +106,11 @@ impl MazeBuilder {
         (self.maze.unwrap(), self.layer_info)
     }
 
-    pub fn add_layer<'l>(
+    pub fn add_layer(
         &mut self,
         source_layer_index: usize,
         source_coord: Coord,
         back: Dir,
-        shape: impl IntoIterator<Item=&'l Coord>,
     ) -> usize {
         let maze = self.maze.as_mut().unwrap();
         let source_layer = maze.clone_layer(source_layer_index);
@@ -123,7 +124,7 @@ impl MazeBuilder {
         let region_to_copy = self.visible_area.as_ref().unwrap().shifted_by(source_coord);
         let mut new_layer = Layer::default();
         copy_region(&source_layer, &mut new_layer, &region_to_copy);
-        for &coord in shape {
+        for &coord in &self.shape {
             new_layer.add(coord);
         }
         generate(
@@ -144,15 +145,14 @@ impl MazeBuilder {
         new_layer_index
     }
 
-    pub fn generate_first_layer<'l>(
+    pub fn generate_first_layer(
         &mut self,
-        shape: impl IntoIterator<Item=&'l Coord>,
         spawn_point: Coord
     ) -> usize {
         use std::iter::once;
 
         let mut layer = Layer::default();
-        for &coord in shape {
+        for &coord in &self.shape {
             layer.add(coord);
         }
         generate(&mut layer, once(spawn_point), &Default::default(), &mut self.rng);
@@ -165,10 +165,9 @@ impl MazeBuilder {
         0
     }
 
-    pub fn add_layer_from_deepest_point<'l>(
+    pub fn add_layer_from_deepest_point(
         &mut self,
         src_layer: usize,
-        shape: impl IntoIterator<Item=&'l Coord>
     ) -> usize {
         let info = &self.layer_info[src_layer];
         let deepest = *info.leaf_escapables.iter().max_by_key(
@@ -180,8 +179,7 @@ impl MazeBuilder {
 
         self.add_layer(
             src_layer,
-            deepest, back,
-            shape
+            deepest, back
         )
     }
 }

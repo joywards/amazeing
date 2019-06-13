@@ -84,11 +84,11 @@ fn render_square(canvas: &mut Canvas, coord: Coord, color: Color) {
 fn build_maze(seed: u64, visible_area: &Region) -> (Maze, Vec<Info>) {
     let shape: Vec<_> = make_circle(SIZE).collect();
 
-    let mut builder = MazeBuilder::new(seed);
+    let mut builder = MazeBuilder::new(seed, shape);
     builder.set_visible_area(visible_area.clone());
-    let mut last = builder.generate_first_layer(&shape, (0, 0).into());
+    let mut last = builder.generate_first_layer((0, 0).into());
     for _ in 0..9 {
-        last = builder.add_layer_from_deepest_point(last, &shape);
+        last = builder.add_layer_from_deepest_point(last);
     }
     builder.into_maze_and_layer_info()
 }
