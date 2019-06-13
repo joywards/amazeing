@@ -180,4 +180,35 @@ impl MazeBuilder {
             deepest
         )
     }
+
+    pub fn fork_to_two_layers(
+        &mut self,
+        src_layer: usize
+    ) -> (usize, usize) {
+        let leaf_escapables = &self.layer_info[src_layer].leaf_escapables;
+        assert!(leaf_escapables.len() >= 2);
+        let first = *leaf_escapables.first().unwrap();
+        let last = *leaf_escapables.last().unwrap();
+        (self.add_layer(src_layer, first), self.add_layer(src_layer, last))
+    }
+
+    pub fn fork_to_three_layers(
+        &mut self,
+        src_layer: usize
+    ) -> (usize, usize, usize) {
+        let info = &self.layer_info[src_layer];
+        let leaf_escapables = &info.leaf_escapables;
+
+        assert!(leaf_escapables.len() >= 3);
+        let first = *leaf_escapables.first().unwrap();
+        let last = *leaf_escapables.last().unwrap();
+        let deepest = *leaf_escapables[1..leaf_escapables.len() - 1].iter().max_by_key(
+            |coord| info.coords[&coord].depth
+        ).unwrap();
+        (
+            self.add_layer(src_layer, first),
+            self.add_layer(src_layer, deepest),
+            self.add_layer(src_layer, last)
+        )
+    }
 }
