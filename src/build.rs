@@ -64,6 +64,17 @@ fn copy_region(src: &Layer, dst: &mut Layer, region: &Region) {
 }
 
 
+#[derive(Debug, Default)]
+pub struct GenerationError {}
+
+impl std::fmt::Display for GenerationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Generation error")
+    }
+}
+impl std::error::Error for GenerationError {}
+
+
 pub struct MazeBuilder {
     maze: Option<Maze>,
     layer_info: Vec<traversal::Info>,
@@ -158,10 +169,10 @@ impl MazeBuilder {
         }
         generate(&mut layer, once(spawn_point), &Default::default(), &mut self.rng);
 
-        self.layer_info.push(traversal::dfs(
+        self.layer_info = vec![traversal::dfs(
                 &layer, spawn_point, None, self.extended_visible_area.as_ref().unwrap()
             )
-        );
+        ];
         self.maze = Some(Maze::new(layer, spawn_point));
         0
     }
@@ -169,47 +180,54 @@ impl MazeBuilder {
     pub fn add_layer_from_deepest_point(
         &mut self,
         src_layer: usize,
-    ) -> usize {
+    ) -> Result<usize, GenerationError> {
         let info = &self.layer_info[src_layer];
         let deepest = *info.leaf_escapables.iter().max_by_key(
             |coord| info.coords[&coord].depth
-        ).unwrap();
+        ).ok_or(GenerationError{})?;
 
-        self.add_layer(
+        Ok(self.add_layer(
             src_layer,
             deepest
-        )
+        ))
     }
 
     pub fn fork_to_two_layers(
         &mut self,
         src_layer: usize
-    ) -> (usize, usize) {
+    ) -> Result<(usize, usize), GenerationError> {
         let leaf_escapables = &self.layer_info[src_layer].leaf_escapables;
-        assert!(leaf_escapables.len() >= 2);
+        if leaf_escapables.len() < 2 {
+            return Err(GenerationError{});
+        }
         let first = *leaf_escapables.first().unwrap();
         let last = *leaf_escapables.last().unwrap();
-        (self.add_layer(src_layer, first), self.add_layer(src_layer, last))
+        Ok((
+            self.add_layer(src_layer, first),
+            self.add_layer(src_layer, last)
+        ))
     }
 
     pub fn fork_to_three_layers(
         &mut self,
         src_layer: usize
-    ) -> (usize, usize, usize) {
+    ) -> Result<(usize, usize, usize), GenerationError> {
         let info = &self.layer_info[src_layer];
         let leaf_escapables = &info.leaf_escapables;
 
-        assert!(leaf_escapables.len() >= 3);
+        if leaf_escapables.len() < 3 {
+            return Err(GenerationError{});
+        }
         let first = *leaf_escapables.first().unwrap();
         let last = *leaf_escapables.last().unwrap();
         let deepest = *leaf_escapables[1..leaf_escapables.len() - 1].iter().max_by_key(
             |coord| info.coords[&coord].depth
         ).unwrap();
-        (
+        Ok((
             self.add_layer(src_layer, first),
             self.add_layer(src_layer, deepest),
             self.add_layer(src_layer, last)
-        )
+        ))
     }
 }
 

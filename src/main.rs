@@ -27,7 +27,7 @@ use geometry::direction::Dir;
 use itertools::Itertools;
 
 use region::Region;
-use build::{make_circle, MazeBuilder};
+use build::{make_circle, MazeBuilder, GenerationError};
 use maze::Maze;
 use traversal::Info;
 
@@ -83,15 +83,26 @@ fn render_square(canvas: &mut Canvas, coord: Coord, color: Color) {
     fill_rect(canvas, view_coord.x, view_coord.y, CELL_SIZE - 1, CELL_SIZE - 1);
 }
 
+fn try_build(builder: &mut MazeBuilder) -> Result<(), GenerationError> {
+    let first = builder.generate_first_layer((0, 0).into());
+    let (_, mut last, _) = builder.fork_to_three_layers(first)?;
+    for _ in 0..9 {
+        last = builder.add_layer_from_deepest_point(last)?;
+    }
+    Ok(())
+}
+
 fn build_maze(seed: u64, visible_area: &Region) -> (Maze, Vec<Info>) {
     let shape: Vec<_> = make_circle(SIZE).collect();
 
     let mut builder = MazeBuilder::new(seed, shape);
     builder.set_visible_area(visible_area.clone());
-    let first = builder.generate_first_layer((0, 0).into());
-    let (_, mut last, _) = builder.fork_to_three_layers(first);
-    for _ in 0..1 {
-        last = builder.add_layer_from_deepest_point(last);
+    loop {
+        if try_build(&mut builder).is_ok() {
+            break;
+        } else {
+            println!("Generation error");
+        }
     }
     builder.into_maze_and_layer_info()
 }
