@@ -5,7 +5,7 @@ use rand::SeedableRng;
 use crate::layer::Layer;
 use crate::region::Region;
 use crate::maze::Maze;
-use crate::geometry::direction::DIRECTIONS;
+use crate::geometry::direction::{Dir, DIRECTIONS};
 use crate::geometry::coord::Coord;
 use crate::generation::generate;
 use crate::traversal;
@@ -35,6 +35,14 @@ fn copy_region(src: &Layer, dst: &mut Layer, region: &Region) {
                 dst.join(cell, dir);
             }
         }
+    }
+}
+
+fn carve_path(layer: &mut Layer, start: Coord, path: &[Dir]) {
+    let mut c = start;
+    for &dir in path {
+        layer.join(c, dir);
+        c = c.advance(dir);
     }
 }
 
@@ -101,6 +109,10 @@ impl MazeBuilder {
         for &coord in &self.shape {
             new_layer.add(coord);
         }
+
+        // Sometimes escape cell can be blocked out from the copied area during
+        // generation. That's why we make it reachable before running generation.
+        carve_path(&mut new_layer, source_coord, &path_to_escape);
 
         generate(
             &mut new_layer, std::iter::once(escape), region_to_copy.cells(),
