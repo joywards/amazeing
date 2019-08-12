@@ -154,7 +154,7 @@ fn main() {
         }
 
         for (&coord, coord_info) in layer_info[maze.current_layer_index()].coords.iter() {
-            if coord_info.escapable {
+            if coord_info.escapable.is_some() {
                 render_square(&mut canvas, coord, Color::RGB(192, 192, 192));
             }
         }

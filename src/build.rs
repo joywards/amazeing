@@ -5,7 +5,7 @@ use rand::SeedableRng;
 use crate::layer::Layer;
 use crate::region::Region;
 use crate::maze::Maze;
-use crate::geometry::direction::{DIRECTIONS, Dir};
+use crate::geometry::direction::DIRECTIONS;
 use crate::geometry::coord::Coord;
 use crate::generation::generate;
 use crate::traversal;
@@ -19,31 +19,6 @@ pub fn make_circle(radius: i32) -> impl Iterator<Item=Coord> {
                 None
             }
         })
-}
-
-fn find_cell_at_boundary(
-    layer: &Layer,
-    coord: Coord, back: Dir,
-    region: &Region
-) -> Option<(Coord, Dir)> {
-    let mut dir = back.rotate_clockwise();
-    while dir != back {
-        if layer.passable(coord, dir) {
-            let to = coord.advance(dir);
-
-            if region.boundary().contains(&to) {
-                return Some((to, dir));
-            }
-
-            if let Some((escape, _)) = find_cell_at_boundary(
-                layer, to, dir.opposite(), region
-            ) {
-                return Some((escape, dir));
-            }
-        }
-        dir = dir.rotate_clockwise();
-    }
-    None
 }
 
 fn copy_region(src: &Layer, dst: &mut Layer, region: &Region) {
@@ -81,12 +56,6 @@ pub struct MazeBuilder {
 
     shape: Vec<Coord>,
     visible_area: Option<Region>,
-    // Sometimes "escape cell" gets cornered and no passage from it can be
-    // created after copying region from previous layer.
-    // To fix this we use a wider visible area when looking for escape cells.
-    // This workaround fixes most of the cases, but further work is required to
-    // guarantee that generation will always work.
-    extended_visible_area: Option<Region>,
     rng: SmallRng,
 }
 
@@ -94,18 +63,13 @@ impl MazeBuilder {
     pub fn new(seed: u64, shape: Vec<Coord>) -> MazeBuilder {
         MazeBuilder{
             maze: None, layer_info: Vec::new(), shape,
-            visible_area: None, extended_visible_area: None,
+            visible_area: None,
             rng: SmallRng::seed_from_u64(seed)
         }
     }
 
     pub fn set_visible_area(&mut self, visible_area: Region) {
         self.visible_area = Some(visible_area);
-        self.extended_visible_area = Some(Region::from(
-            self.visible_area.as_ref().unwrap().cells().union(
-                self.visible_area.as_ref().unwrap().boundary()
-            ).cloned().collect::<std::collections::HashSet<_>>()
-        ));
     }
 
     pub fn into_maze(self) -> Maze {
@@ -124,14 +88,12 @@ impl MazeBuilder {
     ) -> usize {
         let maze = self.maze.as_mut().unwrap();
         let source_layer = maze.clone_layer(source_layer_index);
-        let back = self.layer_info[source_layer_index].coords[&source_coord]
-            .came_from.unwrap();
+        let layer_info = &self.layer_info[source_layer_index];
+        let back = layer_info.coords[&source_coord].came_from.unwrap();
 
-        let (escape, escape_dir) = find_cell_at_boundary(
-            &source_layer,
-            source_coord, back,
-            &self.extended_visible_area.as_ref().unwrap().shifted_by(source_coord)
-        ).expect("Trying to add transition at non-escapable cell.");
+        let escape = layer_info.coords[&source_coord].escapable.unwrap();
+        let path_to_escape = traversal::get_path_to(source_coord, escape, &layer_info);
+        let escape_dir = *path_to_escape.first().unwrap();
 
         let region_to_copy = self.visible_area.as_ref().unwrap().shifted_by(source_coord);
         let mut new_layer = Layer::default();
@@ -139,6 +101,7 @@ impl MazeBuilder {
         for &coord in &self.shape {
             new_layer.add(coord);
         }
+
         generate(
             &mut new_layer, std::iter::once(escape), region_to_copy.cells(),
             &mut self.rng
@@ -146,7 +109,7 @@ impl MazeBuilder {
 
         self.layer_info.push(traversal::dfs(
                 &new_layer, source_coord, Some(back),
-                self.extended_visible_area.as_ref().unwrap()
+                self.visible_area.as_ref().unwrap()
             )
         );
 
@@ -170,7 +133,7 @@ impl MazeBuilder {
         generate(&mut layer, once(spawn_point), &Default::default(), &mut self.rng);
 
         self.layer_info = vec![traversal::dfs(
-                &layer, spawn_point, None, self.extended_visible_area.as_ref().unwrap()
+                &layer, spawn_point, None, self.visible_area.as_ref().unwrap()
             )
         ];
         self.maze = Some(Maze::new(layer, spawn_point));

@@ -9,11 +9,14 @@ use crate::geometry::coord::Coord;
 #[derive(Debug)]
 pub struct CoordInfo {
     /// Tells whether there is a cell in a subtree
-    /// which is not seen from this one.
-    /// This effectively means that new layer
-    /// can be added with region around this cell copied and with transition
-    /// at this cell.
-    pub escapable: bool,
+    /// which is far enough from this one.
+    ///
+    /// Being `Some(escape)` means that new layer
+    /// can be added with region around this cell copied
+    /// and generation started from `escape` is expected to be successful.
+    ///
+    /// `None` means that there is no such cell in a subtree.
+    pub escapable: Option<Coord>,
 
     /// Tells whether there is an "escapable" (see above) cell in a subtree.
     pub has_escapable_below: bool,
@@ -30,6 +33,30 @@ pub struct Info {
     /// Contains locations of cells which are "escapable" (see above) but
     /// don't have "escapable" cells in their subtree.
     pub leaf_escapables: Vec<Coord>,
+}
+
+fn escapable(c: Coord, from: Coord, layer: &Layer, visible_area: &Region) -> bool {
+    use crate::geometry::direction::DIRECTIONS;
+
+    let visible_area = visible_area.shifted_by(from);
+    assert!(layer.has(c));
+
+    if visible_area.cells().contains(&c)
+        || visible_area.boundary().contains(&c)
+    {
+        return false;
+    }
+
+    // For now, just check that layer contains 4 closest cells.
+    // It works well for simple layer shapes but more complex approach is
+    // needed for strong guarantees.
+    for &dir in &DIRECTIONS {
+        if !layer.has(c.advance(dir)) {
+            return false;
+        }
+    }
+
+    true
 }
 
 pub fn dfs(
@@ -66,7 +93,7 @@ fn dfs_impl(
     depth: u32
 ) {
     let prev = info.coords.insert(coord, CoordInfo{
-        escapable: false,
+        escapable: None,
         has_escapable_below: false,
         depth,
         came_from: Some(from)
@@ -76,11 +103,11 @@ fn dfs_impl(
     }
 
     visible_trace.retain(|c| {
-        if visible_area.cells().contains(&(coord - *c)) {
-            true
-        } else {
-            info.coords.get_mut(c).unwrap().escapable = true;
+        if escapable(coord, /* from= */ *c, &layer, &visible_area) {
+            info.coords.get_mut(c).unwrap().escapable = Some(coord);
             false
+        } else {
+            true
         }
     });
     visible_trace.insert(coord);
@@ -95,7 +122,7 @@ fn dfs_impl(
                 info, visible_trace, visible_area, depth + 1
             );
             if info.coords[&to].has_escapable_below
-                || info.coords[&to].escapable
+                || info.coords[&to].escapable.is_some()
             {
                 info.coords.get_mut(&coord).unwrap().has_escapable_below = true;
             }
@@ -104,9 +131,22 @@ fn dfs_impl(
     }
 
     let coord_info = &info.coords[&coord];
-    if coord_info.escapable && !coord_info.has_escapable_below {
+    if coord_info.escapable.is_some() && !coord_info.has_escapable_below {
         info.leaf_escapables.push(coord);
     }
 
     visible_trace.remove(&coord);
+}
+
+pub fn get_path_to(from: Coord, to: Coord, info: &Info) -> Vec<Dir> {
+    let mut c = to;
+    let mut result: Vec<Dir> = Vec::new();
+    while c != from {
+        let back = info.coords[&c].came_from.unwrap();
+        result.push(back.opposite());
+        c = c.advance(back);
+    }
+    result.reverse();
+
+    result
 }

@@ -8,14 +8,19 @@ pub struct Region {
     boundary: HashSet<Coord>,
 }
 
+fn dilate(a: &HashSet<Coord>) -> HashSet<Coord> {
+    let mut result = HashSet::new();
+    for cell in a {
+        for (dx, dy) in (-1..=1).cartesian_product(-1..=1) {
+            result.insert((cell.x + dx, cell.y + dy).into());
+        }
+    }
+    result
+}
+
 impl From<HashSet<Coord>> for Region {
     fn from(cells: HashSet<Coord>) -> Self {
-        let mut boundary = HashSet::new();
-        for cell in &cells {
-            for (dx, dy) in (-1..=1).cartesian_product(-1..=1) {
-                boundary.insert((cell.x + dx, cell.y + dy).into());
-            }
-        }
+        let mut boundary = dilate(&cells);
         for cell in &cells {
             boundary.remove(cell);
         }
