@@ -15,6 +15,10 @@ impl Coord {
     pub fn advance(self, dir: Dir) -> Coord {
         self + dir.into()
     }
+
+    pub fn into_tuple(self) -> (i32, i32) {
+        (self.x, self.y)
+    }
 }
 
 impl std::ops::Add for Coord {

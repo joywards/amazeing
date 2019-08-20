@@ -11,77 +11,26 @@ mod maze;
 mod region;
 mod build;
 mod traversal;
+mod render;
 
 use std::collections::HashSet;
 
-use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::render;
-use sdl2::rect::Rect;
 use std::time::Duration;
 
-use layer::Layer;
-use geometry::coord::Coord;
+use crate::render::Renderer;
+
 use geometry::direction::Dir;
-use itertools::Itertools;
 
 use region::Region;
 use build::{make_circle, MazeBuilder, GenerationError};
 use maze::Maze;
 use traversal::Info;
 
-type Canvas = render::Canvas<sdl2::video::Window>;
+use render::{WINDOW_WIDTH, WINDOW_HEIGHT, VISIBILITY_RADIUS};
 
-const CELL_SIZE: u32 = 17;
-const WINDOW_WIDTH: u32 = 1400;
-const WINDOW_HEIGHT: u32 = 900;
-const SIZE: i32 = 20;
-
-fn to_view(scene_coord: Coord) -> Coord {
-    let scene_camera = Coord::new(0, 0);
-    let view_camera = Coord::new(WINDOW_WIDTH as i32 / 2, WINDOW_HEIGHT as i32 / 2);
-    let x = (scene_coord.x - scene_camera.x) * CELL_SIZE as i32 + view_camera.x;
-    let y = (scene_coord.y - scene_camera.y) * CELL_SIZE as i32 + view_camera.y;
-    (x, y).into()
-}
-
-fn fill_rect<X, Y, W, H>(
-    canvas: &mut Canvas,
-    x: X, y: Y, w: W, h: H
-) where
-    X: Into<i32>, Y: Into<i32>,
-    W: Into<u32>, H: Into<u32>,
-{
-    canvas.fill_rect(Some(Rect::new(
-        x.into(), y.into(),
-        w.into(), h.into()
-    ))).unwrap();
-}
-
-fn render_layer(canvas: &mut Canvas, layer: &Layer) {
-    canvas.set_draw_color(Color::RGB(255, 255, 255));
-    for (x, y) in (-SIZE..=SIZE).cartesian_product(-SIZE..=SIZE) {
-        let coord = Coord::new(x, y);
-        if layer.has(coord) {
-            let view_coord = to_view(coord);
-
-            fill_rect(canvas, view_coord.x, view_coord.y, CELL_SIZE - 1, CELL_SIZE - 1);
-            if layer.passable(coord, Dir::DOWN) {
-                fill_rect(canvas, view_coord.x, view_coord.y, CELL_SIZE - 1, CELL_SIZE);
-            }
-            if layer.passable(coord, Dir::RIGHT) {
-                fill_rect(canvas, view_coord.x, view_coord.y, CELL_SIZE, CELL_SIZE - 1);
-            }
-        }
-    }
-}
-
-fn render_square(canvas: &mut Canvas, coord: Coord, color: Color) {
-    canvas.set_draw_color(color);
-    let view_coord = to_view(coord);
-    fill_rect(canvas, view_coord.x, view_coord.y, CELL_SIZE - 1, CELL_SIZE - 1);
-}
+const SIZE: i32 = 17;
 
 fn try_build(builder: &mut MazeBuilder) -> Result<(), GenerationError> {
     let first = builder.generate_first_layer((0, 0).into());
@@ -108,7 +57,7 @@ fn build_maze(seed: u64, visible_area: &Region) -> (Maze, Vec<Info>) {
 }
 
 fn main() {
-    let visible_area: Region = make_circle(12).collect::<HashSet<_>>().into();
+    let visible_area: Region = make_circle(VISIBILITY_RADIUS).collect::<HashSet<_>>().into();
     let (mut maze, layer_info) = build_maze(0, &visible_area);
 
     let sdl_context: sdl2::Sdl = sdl2::init().unwrap();
@@ -120,10 +69,11 @@ fn main() {
         .unwrap();
 
     let mut canvas = window.into_canvas().build().unwrap();
+    let texture_creator = canvas.texture_creator();
+    let mut renderer = Renderer::new(&mut canvas, &texture_creator);
+
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
-        canvas.set_draw_color(Color::RGB(0, 0, 0));
-        canvas.clear();
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit {..} |
@@ -146,26 +96,8 @@ fn main() {
             }
         }
 
-        render_layer(&mut canvas, maze.current_layer());
-        for &cell in visible_area.shifted_by(maze.position()).boundary() {
-            if maze.current_layer().has(cell) {
-                render_square(&mut canvas, cell, Color::RGB(240, 240, 240));
-            }
-        }
+        renderer.render(&maze, &layer_info, &visible_area);
 
-        for (&coord, coord_info) in layer_info[maze.current_layer_index()].coords.iter() {
-            if coord_info.escapable.is_some() {
-                render_square(&mut canvas, coord, Color::RGB(192, 192, 192));
-            }
-        }
-
-        for &coord in &layer_info[maze.current_layer_index()].leaf_escapables {
-            render_square(&mut canvas, coord, Color::RGB(220, 192, 192));
-        }
-
-        render_square(&mut canvas, maze.position(), Color::RGBA(0, 192, 0, 255));
-
-        canvas.present();
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
 }
