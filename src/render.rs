@@ -7,8 +7,7 @@ use sdl2::rect::Rect;
 use sdl2::video::WindowContext;
 
 use crate::layer::Layer;
-use crate::geometry::coord::Coord;
-use crate::geometry::direction::Dir;
+use crate::geometry::Dir;
 
 use crate::region::Region;
 use crate::maze::Maze;
@@ -65,7 +64,7 @@ impl<'c, 't> Renderer<'c, 't> {
 
         render_square(&mut self.canvas, maze.position(), Color::RGBA(0, 192, 0, 255));
 
-        let mut light_center = to_view(scene.maze.position());
+        let mut light_center = to_view(maze.position());
         light_center.0 += CELL_SIZE as i32 / 2;
         light_center.1 += CELL_SIZE as i32 / 2;
 
@@ -74,7 +73,7 @@ impl<'c, 't> Renderer<'c, 't> {
             &self.light_texture,
             None,
             Some(Rect::from_center(
-                light_center.into_tuple(),
+                light_center,
                 query.width, query.height
             ))
         ).unwrap();
@@ -84,12 +83,12 @@ impl<'c, 't> Renderer<'c, 't> {
 }
 
 
-fn to_view(scene_coord: Coord) -> Coord {
-    let scene_camera = Coord::new(0, 0);
-    let view_camera = Coord::new(WINDOW_WIDTH as i32 / 2, WINDOW_HEIGHT as i32 / 2);
-    let x = (scene_coord.x - scene_camera.x) * CELL_SIZE as i32 + view_camera.x;
-    let y = (scene_coord.y - scene_camera.y) * CELL_SIZE as i32 + view_camera.y;
-    (x, y).into()
+fn to_view(scene_coord: (i32, i32)) -> (i32, i32) {
+    let scene_camera = (0, 0);
+    let view_camera = (WINDOW_WIDTH as i32 / 2, WINDOW_HEIGHT as i32 / 2);
+    let x = (scene_coord.0 - scene_camera.0) * CELL_SIZE as i32 + view_camera.0;
+    let y = (scene_coord.1 - scene_camera.1) * CELL_SIZE as i32 + view_camera.1;
+    (x, y)
 }
 
 fn fill_rect<X, Y, W, H>(
@@ -109,25 +108,25 @@ fn render_layer(canvas: &mut Canvas, layer: &Layer) {
     const RENDER_SIZE: i32 = 20;
     canvas.set_draw_color(Color::RGB(255, 255, 255));
     for (x, y) in (-RENDER_SIZE..=RENDER_SIZE).cartesian_product(-RENDER_SIZE..=RENDER_SIZE) {
-        let coord = Coord::new(x, y);
+        let coord = (x, y);
         if layer.has(coord) {
             let view_coord = to_view(coord);
 
-            fill_rect(canvas, view_coord.x, view_coord.y, CELL_SIZE - 1, CELL_SIZE - 1);
+            fill_rect(canvas, view_coord.0, view_coord.1, CELL_SIZE - 1, CELL_SIZE - 1);
             if layer.passable(coord, Dir::DOWN) {
-                fill_rect(canvas, view_coord.x, view_coord.y, CELL_SIZE - 1, CELL_SIZE);
+                fill_rect(canvas, view_coord.0, view_coord.1, CELL_SIZE - 1, CELL_SIZE);
             }
             if layer.passable(coord, Dir::RIGHT) {
-                fill_rect(canvas, view_coord.x, view_coord.y, CELL_SIZE, CELL_SIZE - 1);
+                fill_rect(canvas, view_coord.0, view_coord.1, CELL_SIZE, CELL_SIZE - 1);
             }
         }
     }
 }
 
-fn render_square(canvas: &mut Canvas, coord: Coord, color: Color) {
+fn render_square(canvas: &mut Canvas, coord: (i32, i32), color: Color) {
     canvas.set_draw_color(color);
     let view_coord = to_view(coord);
-    fill_rect(canvas, view_coord.x, view_coord.y, CELL_SIZE - 1, CELL_SIZE - 1);
+    fill_rect(canvas, view_coord.0, view_coord.1, CELL_SIZE - 1, CELL_SIZE - 1);
 }
 
 fn create_light_surface(radius: u32, size: u32) -> Result<Surface<'static>, String> {

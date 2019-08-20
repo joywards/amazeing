@@ -1,9 +1,8 @@
 use std::collections::{HashSet, HashMap};
 
-use crate::geometry::direction::Dir;
+use crate::geometry::{Dir, DIRECTIONS};
 use crate::layer::Layer;
 use crate::region::Region;
-use crate::geometry::coord::Coord;
 
 
 #[derive(Debug)]
@@ -16,7 +15,7 @@ pub struct CoordInfo {
     /// and generation started from `escape` is expected to be successful.
     ///
     /// `None` means that there is no such cell in a subtree.
-    pub escapable: Option<Coord>,
+    pub escapable: Option<(i32, i32)>,
 
     /// Tells whether there is an "escapable" (see above) cell in a subtree.
     pub has_escapable_below: bool,
@@ -28,16 +27,14 @@ pub struct CoordInfo {
 
 #[derive(Default, Debug)]
 pub struct Info {
-    pub coords: HashMap<Coord, CoordInfo>,
+    pub coords: HashMap<(i32, i32), CoordInfo>,
 
     /// Contains locations of cells which are "escapable" (see above) but
     /// don't have "escapable" cells in their subtree.
-    pub leaf_escapables: Vec<Coord>,
+    pub leaf_escapables: Vec<(i32, i32)>,
 }
 
-fn escapable(c: Coord, from: Coord, layer: &Layer, visible_area: &Region) -> bool {
-    use crate::geometry::direction::DIRECTIONS;
-
+fn escapable(c: (i32, i32), from: (i32, i32), layer: &Layer, visible_area: &Region) -> bool {
     let visible_area = visible_area.shifted_by(from);
     assert!(layer.has(c));
 
@@ -51,7 +48,7 @@ fn escapable(c: Coord, from: Coord, layer: &Layer, visible_area: &Region) -> boo
     // It works well for simple layer shapes but more complex approach is
     // needed for strong guarantees.
     for &dir in &DIRECTIONS {
-        if !layer.has(c.advance(dir)) {
+        if !layer.has(c + dir) {
             return false;
         }
     }
@@ -61,7 +58,7 @@ fn escapable(c: Coord, from: Coord, layer: &Layer, visible_area: &Region) -> boo
 
 pub fn dfs(
     layer: &Layer,
-    start: Coord, from: Option<Dir>,
+    start: (i32, i32), from: Option<Dir>,
     visible_area: &Region
 ) -> Info {
     let mut info = Info::default();
@@ -74,7 +71,7 @@ pub fn dfs(
         dfs_impl(layer, start, back, &mut info, &mut visible_trace, visible_area, 0);
         if layer.passable(start, back) {
             dfs_impl(
-                layer, start.advance(back), back.opposite(),
+                layer, start + back, back.opposite(),
                 &mut info, &mut visible_trace, visible_area, 1
             );
         }
@@ -86,9 +83,9 @@ pub fn dfs(
 
 fn dfs_impl(
     layer: &Layer,
-    coord: Coord, from: Dir,
+    coord: (i32, i32), from: Dir,
     info: &mut Info,
-    visible_trace: &mut HashSet<Coord>,
+    visible_trace: &mut HashSet<(i32, i32)>,
     visible_area: &Region,
     depth: u32
 ) {
@@ -115,7 +112,7 @@ fn dfs_impl(
     let mut dir = from.rotate_clockwise();
     while dir != from {
         if layer.passable(coord, dir) {
-            let to = coord.advance(dir);
+            let to = coord + dir;
             dfs_impl(
                 layer,
                 to, dir.opposite(),
@@ -138,13 +135,13 @@ fn dfs_impl(
     visible_trace.remove(&coord);
 }
 
-pub fn get_path_to(from: Coord, to: Coord, info: &Info) -> Vec<Dir> {
+pub fn get_path_to(from: (i32, i32), to: (i32, i32), info: &Info) -> Vec<Dir> {
     let mut c = to;
     let mut result: Vec<Dir> = Vec::new();
     while c != from {
         let back = info.coords[&c].came_from.unwrap();
         result.push(back.opposite());
-        c = c.advance(back);
+        c = c + back;
     }
     result.reverse();
 

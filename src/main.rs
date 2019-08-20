@@ -21,7 +21,7 @@ use std::time::Duration;
 
 use crate::render::Renderer;
 
-use geometry::direction::Dir;
+use geometry::Dir;
 
 use region::Region;
 use build::{make_circle, MazeBuilder, GenerationError};
@@ -33,7 +33,7 @@ use render::{WINDOW_WIDTH, WINDOW_HEIGHT, VISIBILITY_RADIUS};
 const SIZE: i32 = 17;
 
 fn try_build(builder: &mut MazeBuilder) -> Result<(), GenerationError> {
-    let first = builder.generate_first_layer((0, 0).into());
+    let first = builder.generate_first_layer((0, 0));
     let (_, mut last, _) = builder.fork_to_three_layers(first)?;
     for _ in 0..9 {
         last = builder.add_layer_from_deepest_point(last)?;

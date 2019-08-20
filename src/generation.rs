@@ -2,21 +2,20 @@ extern crate rand;
 
 use std::collections::HashSet;
 use crate::layer::Layer;
-use crate::geometry::coord::Coord;
-use crate::geometry::direction::{Dir, DIRECTIONS};
+use crate::geometry::{Dir, DIRECTIONS};
 use rand::Rng;
 use rand::seq::SliceRandom;
 
 const CHANCE_TO_BE_NEXT: f64 = 0.07;
 
-fn possible_moves(layer: &Layer, from: Coord, blocked_cells: &HashSet<Coord>) -> Vec<Dir> {
+fn possible_moves(layer: &Layer, from: (i32, i32), blocked_cells: &HashSet<(i32, i32)>) -> Vec<Dir> {
     if !layer.has(from) {
         return vec![];
     }
 
     let mut result= vec![];
     for &dir in &DIRECTIONS {
-        let to = from.advance(dir);
+        let to = from + dir;
         if layer.has(to)
             && !blocked_cells.contains(&to)
             && !layer.reachable(from, to)
@@ -28,7 +27,7 @@ fn possible_moves(layer: &Layer, from: Coord, blocked_cells: &HashSet<Coord>) ->
 }
 
 fn expand_randomly<R>(
-    layer: &mut Layer, from: Coord, blocked_cells: &HashSet<Coord>,
+    layer: &mut Layer, from: (i32, i32), blocked_cells: &HashSet<(i32, i32)>,
     rng: &mut R
 ) -> Option<Dir>
     where R: Rng + ?Sized
@@ -43,11 +42,11 @@ fn expand_randomly<R>(
 // There is probably space for optimization here.
 pub fn generate<R: Rng + ?Sized>(
     layer: &mut Layer,
-    spawn_points: impl Iterator<Item=Coord>,
-    blocked_cells: &HashSet<Coord>,
+    spawn_points: impl Iterator<Item=(i32, i32)>,
+    blocked_cells: &HashSet<(i32, i32)>,
     rng: &mut R
 ) {
-    let mut queue: Vec<Coord> = spawn_points.collect();
+    let mut queue: Vec<(i32, i32)> = spawn_points.collect();
 
     while !queue.is_empty() {
         while queue.iter().last().map_or(false,
@@ -55,11 +54,11 @@ pub fn generate<R: Rng + ?Sized>(
         ) {
             queue.pop();
         }
-        let mut new_cell: Option<Coord> = None;
+        let mut new_cell: Option<(i32, i32)> = None;
         for cell in queue.iter().rev() {
             if rng.gen_bool(CHANCE_TO_BE_NEXT) {
                 if let Some(dir) = expand_randomly(layer, *cell, blocked_cells, rng) {
-                    new_cell = Some(cell.advance(dir));
+                    new_cell = Some(*cell + dir);
                 }
                 break;
             }
@@ -83,10 +82,10 @@ fn test_generation() {
             layer.add((x, y));
         }
     }
-    generate(&mut layer, std::iter::once(Coord::new(0, 0)), &HashSet::new(), &mut rng);
+    generate(&mut layer, std::iter::once((0, 0)), &HashSet::new(), &mut rng);
     for x in -100..100 {
         for y in -100..100 {
-            assert!(layer.reachable((0, 0).into(), (x, y).into()));
+            assert!(layer.reachable((0, 0), (x, y)));
         }
     }
 }
@@ -117,7 +116,7 @@ fn bench_generation(b: &mut test::Bencher) {
     b.iter(|| {
         generate(
             &mut layer.clone(),
-            std::iter::once((0, 0).into()),
+            std::iter::once((0, 0)),
             &blocked_cells,
             &mut rng
         );

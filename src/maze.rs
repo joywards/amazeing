@@ -2,8 +2,7 @@ use std::sync::Mutex;
 use std::collections::HashMap;
 
 use crate::layer::Layer;
-use crate::geometry::coord::Coord;
-use crate::geometry::direction::Dir;
+use crate::geometry::Dir;
 
 #[derive(Clone, Copy)]
 struct Transition {
@@ -13,12 +12,12 @@ struct Transition {
 #[derive(Clone)]
 struct MazeLayer {
     layer: Layer,
-    transitions: HashMap<Coord, Transition>,
+    transitions: HashMap<(i32, i32), Transition>,
 }
 
 pub struct Maze {
     layers: Mutex<Vec<MazeLayer>>,
-    position: Coord,
+    position: (i32, i32),
     current_layer_index: usize,
     // A copy of current layer is made for avoiding
     // thread synchronization during rendering.
@@ -32,7 +31,7 @@ pub enum MoveResult{
 }
 
 impl Maze {
-    pub fn new(layer: Layer, spawn_point: Coord) -> Maze {
+    pub fn new(layer: Layer, spawn_point: (i32, i32)) -> Maze {
         Maze{
             layers: Mutex::new(vec![MazeLayer{
                 layer: layer.clone(),
@@ -55,7 +54,7 @@ impl Maze {
 
     pub fn try_move(&mut self, dir: Dir) -> MoveResult {
         if self.current_layer.passable(self.position, dir) {
-            self.position = self.position.advance(dir);
+            self.position = self.position + dir;
             self.change_layer_if_necessary();
             MoveResult::SUCCESS
         } else {
@@ -71,7 +70,7 @@ impl Maze {
         self.current_layer_index
     }
 
-    pub fn position(&self) -> Coord {
+    pub fn position(&self) -> (i32, i32) {
         self.position
     }
 
@@ -88,12 +87,12 @@ impl Maze {
         layers.len() - 1
     }
 
-    pub fn add_transition(&self, coord: Coord, dir: Dir, from_index: usize, to_index: usize) {
+    pub fn add_transition(&self, coord: (i32, i32), dir: Dir, from_index: usize, to_index: usize) {
         let mut layers = self.layers.lock().unwrap();
 
         let from = &mut layers[from_index];
         assert!(from.layer.passable(coord, dir));
-        from.transitions.insert(coord.advance(dir), Transition{dest_layer: to_index});
+        from.transitions.insert(coord + dir, Transition{dest_layer: to_index});
 
         let to = &mut layers[to_index];
         assert!(to.layer.passable(coord, dir));
@@ -107,40 +106,40 @@ fn test_maze() {
     first.add((0, 0));
     for i in 1..=3 {
         first.add((0, i));
-        first.join((0, i).into(), Dir::UP);
+        first.join((0, i), Dir::UP);
     }
     let mut second = first.clone();
     second.add((2, 2));
 
-    let mut maze = Maze::new(first, (0, 0).into());
+    let mut maze = Maze::new(first, (0, 0));
     maze.add_layer(second);
-    maze.add_transition((0, 1).into(), Dir::DOWN, 0, 1);
+    maze.add_transition((0, 1), Dir::DOWN, 0, 1);
 
     assert_eq!(maze.try_move(Dir::RIGHT), MoveResult::OBSTACLE);
     assert_eq!(maze.try_move(Dir::DOWN), MoveResult::SUCCESS);
-    assert_eq!(maze.position, (0, 1).into());
+    assert_eq!(maze.position, (0, 1));
     assert_eq!(maze.current_layer_index, 0);
     assert!(!maze.current_layer.has((2, 2)));
 
     assert_eq!(maze.try_move(Dir::DOWN), MoveResult::SUCCESS);
-    assert_eq!(maze.position, (0, 2).into());
+    assert_eq!(maze.position, (0, 2));
     assert_eq!(maze.current_layer_index, 1);
     assert!(maze.current_layer.has((2, 2)));
 
     assert_eq!(maze.try_move(Dir::DOWN), MoveResult::SUCCESS);
-    assert_eq!(maze.position, (0, 3).into());
+    assert_eq!(maze.position, (0, 3));
     assert_eq!(maze.current_layer_index, 1);
 
     assert_eq!(maze.try_move(Dir::UP), MoveResult::SUCCESS);
-    assert_eq!(maze.position, (0, 2).into());
+    assert_eq!(maze.position, (0, 2));
     assert_eq!(maze.current_layer_index, 1);
 
     assert_eq!(maze.try_move(Dir::UP), MoveResult::SUCCESS);
-    assert_eq!(maze.position, (0, 1).into());
+    assert_eq!(maze.position, (0, 1));
     assert_eq!(maze.current_layer_index, 0);
 
     assert_eq!(maze.try_move(Dir::UP), MoveResult::SUCCESS);
-    assert_eq!(maze.position, (0, 0).into());
+    assert_eq!(maze.position, (0, 0));
     assert_eq!(maze.current_layer_index, 0);
     assert_eq!(maze.try_move(Dir::UP), MoveResult::OBSTACLE);
 }

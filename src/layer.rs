@@ -1,6 +1,5 @@
 use crate::dsu::DSU;
-use crate::geometry::coord::Coord;
-use crate::geometry::direction::Dir;
+use crate::geometry::Dir;
 use std::collections::HashMap;
 
 #[derive(Default, Clone, Copy)]
@@ -22,20 +21,20 @@ impl Cell {
 
 #[derive(Default, Clone)]
 pub struct Layer {
-    cells: HashMap<Coord, Cell>,
-    dsu: DSU<Coord>,
+    cells: HashMap<(i32, i32), Cell>,
+    dsu: DSU<(i32, i32)>,
 }
 
 impl Layer {
-    pub fn has<C: Into<Coord>>(&self, coord: C) -> bool {
-        self.cells.contains_key(&coord.into())
+    pub fn has(&self, coord: (i32, i32)) -> bool {
+        self.cells.contains_key(&coord)
     }
 
-    pub fn add<C: Into<Coord>>(&mut self, coord: C) {
-        self.cells.entry(coord.into()).or_insert_with(Default::default);
+    pub fn add(&mut self, coord: (i32, i32)) {
+        self.cells.entry(coord).or_insert_with(Default::default);
     }
 
-    pub fn passable(&self, from: Coord, dir: Dir) -> bool {
+    pub fn passable(&self, from: (i32, i32), dir: Dir) -> bool {
         let cell;
         match self.cells.get(&from) {
             None => return false,
@@ -44,7 +43,7 @@ impl Layer {
         match dir {
             Dir::LEFT | Dir::UP =>
                 self.passable(
-                    from.advance(dir),
+                    from + dir,
                     dir.opposite()
                 ),
             Dir::RIGHT => cell.has_passage_right,
@@ -52,15 +51,15 @@ impl Layer {
         }
     }
 
-    pub fn join(&mut self, from: Coord, dir: Dir) {
+    pub fn join(&mut self, from: (i32, i32), dir: Dir) {
         match dir {
             Dir::LEFT | Dir::UP =>
                 self.join(
-                    from.advance(dir),
+                    from + dir,
                     dir.opposite()
                 ),
             Dir::RIGHT | Dir::DOWN => {
-                let to = from.advance(dir);
+                let to = from + dir;
                 const MSG: &str = "Trying to join with cell outside the layer";
                 assert!(self.has(to), MSG);
 
@@ -71,7 +70,7 @@ impl Layer {
         }
     }
 
-    pub fn reachable(&self, from: Coord, to: Coord) -> bool {
+    pub fn reachable(&self, from: (i32, i32), to: (i32, i32)) -> bool {
         self.dsu.equiv(from, to)
     }
 }
@@ -79,18 +78,18 @@ impl Layer {
 #[test]
 fn test_layer() {
     let mut layer: Layer = Default::default();
-    assert!(!layer.has(Coord::new(0, 0)));
-    layer.add(Coord::new(0, 0));
-    layer.add(Coord::new(0, 1));
-    layer.add(Coord::new(1, 0));
-    assert!(layer.has(Coord::new(0, 0)));
-    assert!(!layer.has(Coord::new(1, 1)));
+    assert!(!layer.has((0, 0)));
+    layer.add((0, 0));
+    layer.add((0, 1));
+    layer.add((1, 0));
+    assert!(layer.has((0, 0)));
+    assert!(!layer.has((1, 1)));
 
-    layer.join(Coord::new(0, 0), Dir::RIGHT);
-    assert!(layer.passable(Coord::new(1, 0), Dir::LEFT));
-    assert!(!layer.passable(Coord::new(0, 0), Dir::DOWN));
-    assert!(!layer.reachable(Coord::new(1, 0), Coord::new(0, 1)));
-    layer.join(Coord::new(0, 1), Dir::UP);
-    assert!(layer.passable(Coord::new(0, 0), Dir::DOWN));
-    assert!(layer.reachable(Coord::new(1, 0), Coord::new(0, 1)));
+    layer.join((0, 0), Dir::RIGHT);
+    assert!(layer.passable((1, 0), Dir::LEFT));
+    assert!(!layer.passable((0, 0), Dir::DOWN));
+    assert!(!layer.reachable((1, 0), (0, 1)));
+    layer.join((0, 1), Dir::UP);
+    assert!(layer.passable((0, 0), Dir::DOWN));
+    assert!(layer.reachable((1, 0), (0, 1)));
 }

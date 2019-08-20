@@ -5,16 +5,15 @@ use rand::SeedableRng;
 use crate::layer::Layer;
 use crate::region::Region;
 use crate::maze::Maze;
-use crate::geometry::direction::{Dir, DIRECTIONS};
-use crate::geometry::coord::Coord;
+use crate::geometry::{Dir, DIRECTIONS};
 use crate::generation::generate;
 use crate::traversal;
 
-pub fn make_circle(radius: i32) -> impl Iterator<Item=Coord> {
+pub fn make_circle(radius: i32) -> impl Iterator<Item=(i32, i32)> {
     (-radius..=radius).cartesian_product(-radius..=radius)
         .filter_map(move |(x, y)| {
             if x.pow(2) + y.pow(2) < radius.pow(2) {
-                Some(Coord::new(x, y))
+                Some((x, y))
             } else {
                 None
             }
@@ -38,11 +37,11 @@ fn copy_region(src: &Layer, dst: &mut Layer, region: &Region) {
     }
 }
 
-fn carve_path(layer: &mut Layer, start: Coord, path: &[Dir]) {
+fn carve_path(layer: &mut Layer, start: (i32, i32), path: &[Dir]) {
     let mut c = start;
     for &dir in path {
         layer.join(c, dir);
-        c = c.advance(dir);
+        c = c + dir;
     }
 }
 
@@ -62,13 +61,13 @@ pub struct MazeBuilder {
     maze: Option<Maze>,
     layer_info: Vec<traversal::Info>,
 
-    shape: Vec<Coord>,
+    shape: Vec<(i32, i32)>,
     visible_area: Option<Region>,
     rng: SmallRng,
 }
 
 impl MazeBuilder {
-    pub fn new(seed: u64, shape: Vec<Coord>) -> MazeBuilder {
+    pub fn new(seed: u64, shape: Vec<(i32, i32)>) -> MazeBuilder {
         MazeBuilder{
             maze: None, layer_info: Vec::new(), shape,
             visible_area: None,
@@ -92,7 +91,7 @@ impl MazeBuilder {
     fn add_layer(
         &mut self,
         source_layer_index: usize,
-        source_coord: Coord,
+        source_coord: (i32, i32),
     ) -> usize {
         let maze = self.maze.as_mut().unwrap();
         let source_layer = maze.clone_layer(source_layer_index);
@@ -134,7 +133,7 @@ impl MazeBuilder {
 
     pub fn generate_first_layer(
         &mut self,
-        spawn_point: Coord
+        spawn_point: (i32, i32)
     ) -> usize {
         use std::iter::once;
 
@@ -220,7 +219,7 @@ fn bench_add_layer(b: &mut test::Bencher) {
     let shape = make_circle(30).collect();
     let mut builder = MazeBuilder::new(0, shape);
     builder.set_visible_area(Region::from(make_circle(12).collect::<HashSet<_>>()));
-    builder.generate_first_layer((0, 0).into());
+    builder.generate_first_layer((0, 0));
 
     b.iter(|| {
         builder.add_layer_from_deepest_point(0);
