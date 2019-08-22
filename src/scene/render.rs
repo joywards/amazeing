@@ -9,7 +9,7 @@ use sdl2::video::WindowContext;
 use crate::layer::Layer;
 use crate::geometry::Dir;
 
-use crate::region::Region;
+use crate::visible_area::{visibility_radius, visible_area};
 use crate::scene::{Scene, Camera};
 
 pub type Canvas = sdl2::render::Canvas<sdl2::video::Window>;
@@ -17,7 +17,6 @@ pub type Canvas = sdl2::render::Canvas<sdl2::video::Window>;
 const CELL_SIZE: u32 = 17;
 
 // TODO: remove this consts
-pub const VISIBILITY_RADIUS: i32 = 12;
 pub const WINDOW_WIDTH: u32 = 1400;
 pub const WINDOW_HEIGHT: u32 = 900;
 
@@ -30,7 +29,7 @@ impl<'t> Renderer<'t> {
     // outlive every created texture and borrow checker doesn't allow to store
     // such objects in a single structure.
     pub fn new(texture_creator: &'t TextureCreator<WindowContext>) -> Self {
-        let light_radius = ((VISIBILITY_RADIUS as f32 - 1. / 2_f32.sqrt()) * CELL_SIZE as f32) as u32;
+        let light_radius = ((visibility_radius() as f32 - 1. / 2_f32.sqrt()) * CELL_SIZE as f32) as u32;
         let texture_size = 1024; // TODO: calculate accurately
         let light_surface = create_light_surface(light_radius, texture_size).unwrap();
         Renderer {
@@ -40,12 +39,12 @@ impl<'t> Renderer<'t> {
         }
     }
 
-    pub fn render(&self, scene: &Scene, canvas: &mut Canvas, visible_area: &Region) {
+    pub fn render(&self, scene: &Scene, canvas: &mut Canvas) {
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
 
         render_layer(canvas, scene.maze.current_layer(), scene.camera);
-        for &cell in visible_area.shifted_by(scene.maze.position()).boundary() {
+        for &cell in visible_area().shifted_by(scene.maze.position()).boundary() {
             if scene.maze.current_layer().has(cell) {
                 render_square(
                     canvas,

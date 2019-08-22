@@ -2,6 +2,8 @@
 
 extern crate sdl2;
 extern crate itertools;
+#[macro_use]
+extern crate lazy_static;
 
 mod dsu;
 mod layer;
@@ -12,23 +14,19 @@ mod scene;
 mod region;
 mod build;
 mod traversal;
-
-use std::collections::HashSet;
+mod visible_area;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
 
 use geometry::Dir;
-
-use region::Region;
 use build::{make_circle, MazeBuilder, GenerationError};
 use maze::Maze;
 use traversal::Info;
 use scene::Scene;
 
 const SIZE: i32 = 17;
-pub const VISIBILITY_RADIUS: i32 = 12;
 pub const WINDOW_WIDTH: u32 = 1400;
 pub const WINDOW_HEIGHT: u32 = 900;
 
@@ -42,11 +40,10 @@ fn try_build(builder: &mut MazeBuilder) -> Result<(), GenerationError> {
     Ok(())
 }
 
-fn build_maze(seed: u64, visible_area: &Region) -> (Maze, Vec<Info>) {
+fn build_maze(seed: u64) -> (Maze, Vec<Info>) {
     let shape: Vec<_> = make_circle(SIZE).collect();
 
     let mut builder = MazeBuilder::new(seed, shape);
-    builder.set_visible_area(visible_area.clone());
     loop {
         if try_build(&mut builder).is_ok() {
             break;
@@ -58,8 +55,7 @@ fn build_maze(seed: u64, visible_area: &Region) -> (Maze, Vec<Info>) {
 }
 
 fn main() {
-    let visible_area: Region = make_circle(VISIBILITY_RADIUS).collect::<HashSet<_>>().into();
-    let (maze, layer_info) = build_maze(0, &visible_area);
+    let (maze, layer_info) = build_maze(0);
 
     let sdl_context: sdl2::Sdl = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -100,7 +96,7 @@ fn main() {
 
         scene.update();
 
-        scene.render(&mut canvas, &visible_area);
+        scene.render(&mut canvas);
         canvas.present();
 
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));

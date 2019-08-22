@@ -2,7 +2,7 @@ use std::collections::{HashSet, HashMap};
 
 use crate::geometry::{Dir, DIRECTIONS};
 use crate::layer::Layer;
-use crate::region::Region;
+use crate::visible_area::visible_area;
 
 
 #[derive(Debug)]
@@ -34,8 +34,8 @@ pub struct Info {
     pub leaf_escapables: Vec<(i32, i32)>,
 }
 
-fn escapable(c: (i32, i32), from: (i32, i32), layer: &Layer, visible_area: &Region) -> bool {
-    let visible_area = visible_area.shifted_by(from);
+fn escapable(c: (i32, i32), from: (i32, i32), layer: &Layer) -> bool {
+    let visible_area = visible_area().shifted_by(from);
     assert!(layer.has(c));
 
     if visible_area.cells().contains(&c)
@@ -58,21 +58,20 @@ fn escapable(c: (i32, i32), from: (i32, i32), layer: &Layer, visible_area: &Regi
 
 pub fn dfs(
     layer: &Layer,
-    start: (i32, i32), from: Option<Dir>,
-    visible_area: &Region
+    start: (i32, i32), from: Option<Dir>
 ) -> Info {
     let mut info = Info::default();
     let mut visible_trace = HashSet::default();
 
     if let Some(from) = from {
-        dfs_impl(layer, start, from, &mut info, &mut visible_trace, visible_area, 0);
+        dfs_impl(layer, start, from, &mut info, &mut visible_trace, 0);
     } else {
         let back = Dir::DOWN;
-        dfs_impl(layer, start, back, &mut info, &mut visible_trace, visible_area, 0);
+        dfs_impl(layer, start, back, &mut info, &mut visible_trace, 0);
         if layer.passable(start, back) {
             dfs_impl(
                 layer, start + back, back.opposite(),
-                &mut info, &mut visible_trace, visible_area, 1
+                &mut info, &mut visible_trace, 1
             );
         }
         info.coords.get_mut(&start).unwrap().came_from = None;
@@ -86,7 +85,6 @@ fn dfs_impl(
     coord: (i32, i32), from: Dir,
     info: &mut Info,
     visible_trace: &mut HashSet<(i32, i32)>,
-    visible_area: &Region,
     depth: u32
 ) {
     let prev = info.coords.insert(coord, CoordInfo{
@@ -100,7 +98,7 @@ fn dfs_impl(
     }
 
     visible_trace.retain(|c| {
-        if escapable(coord, /* from= */ *c, &layer, &visible_area) {
+        if escapable(coord, /* from= */ *c, &layer) {
             info.coords.get_mut(c).unwrap().escapable = Some(coord);
             false
         } else {
@@ -116,7 +114,7 @@ fn dfs_impl(
             dfs_impl(
                 layer,
                 to, dir.opposite(),
-                info, visible_trace, visible_area, depth + 1
+                info, visible_trace, depth + 1
             );
             if info.coords[&to].has_escapable_below
                 || info.coords[&to].escapable.is_some()

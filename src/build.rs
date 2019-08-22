@@ -4,6 +4,7 @@ use rand::SeedableRng;
 
 use crate::layer::Layer;
 use crate::region::Region;
+use crate::visible_area::visible_area;
 use crate::maze::Maze;
 use crate::geometry::{Dir, DIRECTIONS};
 use crate::generation::generate;
@@ -62,7 +63,6 @@ pub struct MazeBuilder {
     layer_info: Vec<traversal::Info>,
 
     shape: Vec<(i32, i32)>,
-    visible_area: Option<Region>,
     rng: SmallRng,
 }
 
@@ -70,13 +70,8 @@ impl MazeBuilder {
     pub fn new(seed: u64, shape: Vec<(i32, i32)>) -> MazeBuilder {
         MazeBuilder{
             maze: None, layer_info: Vec::new(), shape,
-            visible_area: None,
             rng: SmallRng::seed_from_u64(seed)
         }
-    }
-
-    pub fn set_visible_area(&mut self, visible_area: Region) {
-        self.visible_area = Some(visible_area);
     }
 
     pub fn into_maze(self) -> Maze {
@@ -102,7 +97,7 @@ impl MazeBuilder {
         let path_to_escape = traversal::get_path_to(source_coord, escape, &layer_info);
         let escape_dir = *path_to_escape.first().unwrap();
 
-        let region_to_copy = self.visible_area.as_ref().unwrap().shifted_by(source_coord);
+        let region_to_copy = visible_area().shifted_by(source_coord);
         let mut new_layer = Layer::default();
         copy_region(&source_layer, &mut new_layer, &region_to_copy);
         for &coord in &self.shape {
@@ -119,10 +114,8 @@ impl MazeBuilder {
         );
 
         self.layer_info.push(traversal::dfs(
-                &new_layer, source_coord, Some(back),
-                self.visible_area.as_ref().unwrap()
-            )
-        );
+            &new_layer, source_coord, Some(back)
+        ));
 
         let new_layer_index = maze.add_layer(new_layer);
         maze.add_transition(source_coord, escape_dir, source_layer_index, new_layer_index);
@@ -144,9 +137,8 @@ impl MazeBuilder {
         generate(&mut layer, once(spawn_point), &Default::default(), &mut self.rng);
 
         self.layer_info = vec![traversal::dfs(
-                &layer, spawn_point, None, self.visible_area.as_ref().unwrap()
-            )
-        ];
+            &layer, spawn_point, None
+        )];
         self.maze = Some(Maze::new(layer, spawn_point));
         0
     }

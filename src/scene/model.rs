@@ -1,7 +1,6 @@
 use crate::maze::Maze;
 use crate::traversal::Info;
 use crate::scene::{Renderer, Canvas};
-use crate::region::Region;
 use sdl2::render::TextureCreator;
 use sdl2::video::WindowContext;
 
@@ -36,7 +35,7 @@ impl<'t> Scene<'t> {
         self.camera = (pos.0 as f32, pos.1 as f32);
     }
 
-    pub fn render(&self, canvas: &mut Canvas, visible_area: &Region) {
-        self.renderer.render(self, canvas, visible_area);
+    pub fn render(&self, canvas: &mut Canvas) {
+        self.renderer.render(self, canvas);
     }
 }
