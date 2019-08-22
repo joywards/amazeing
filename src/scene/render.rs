@@ -15,40 +15,40 @@ use crate::scene::{Scene, Camera};
 pub type Canvas = sdl2::render::Canvas<sdl2::video::Window>;
 
 const CELL_SIZE: u32 = 17;
+
+// TODO: remove this consts
 pub const VISIBILITY_RADIUS: i32 = 12;
 pub const WINDOW_WIDTH: u32 = 1400;
 pub const WINDOW_HEIGHT: u32 = 900;
 
-pub struct Renderer<'c, 't> {
-    canvas: &'c mut Canvas,
+pub struct Renderer<'t> {
     light_texture: Texture<'t>,
 }
 
-impl<'c, 't> Renderer<'c, 't> {
+impl<'t> Renderer<'t> {
     // TextureCreator can not be stored inside Renderer because it has to
     // outlive every created texture and borrow checker doesn't allow to store
     // such objects in a single structure.
-    pub fn new(canvas: &'c mut Canvas, texture_creator: &'t TextureCreator<WindowContext>) -> Self {
+    pub fn new(texture_creator: &'t TextureCreator<WindowContext>) -> Self {
         let light_radius = ((VISIBILITY_RADIUS as f32 - 1. / 2_f32.sqrt()) * CELL_SIZE as f32) as u32;
         let texture_size = 1024; // TODO: calculate accurately
         let light_surface = create_light_surface(light_radius, texture_size).unwrap();
         Renderer {
-            canvas,
             light_texture: texture_creator.create_texture_from_surface(
                 light_surface
             ).unwrap()
         }
     }
 
-    pub fn render(&mut self, scene: &Scene, visible_area: &Region) {
-        self.canvas.set_draw_color(Color::RGB(0, 0, 0));
-        self.canvas.clear();
+    pub fn render(&self, scene: &Scene, canvas: &mut Canvas, visible_area: &Region) {
+        canvas.set_draw_color(Color::RGB(0, 0, 0));
+        canvas.clear();
 
-        render_layer(&mut self.canvas, scene.maze.current_layer(), scene.camera);
+        render_layer(canvas, scene.maze.current_layer(), scene.camera);
         for &cell in visible_area.shifted_by(scene.maze.position()).boundary() {
             if scene.maze.current_layer().has(cell) {
                 render_square(
-                    &mut self.canvas,
+                    canvas,
                     cell, Color::RGB(240, 240, 240), scene.camera
                 );
             }
@@ -57,7 +57,7 @@ impl<'c, 't> Renderer<'c, 't> {
         for (&coord, coord_info) in scene.layer_info[scene.maze.current_layer_index()].coords.iter() {
             if coord_info.escapable.is_some() {
                 render_square(
-                    &mut self.canvas,
+                    canvas,
                     coord, Color::RGB(192, 192, 192), scene.camera
                 );
             }
@@ -65,13 +65,13 @@ impl<'c, 't> Renderer<'c, 't> {
 
         for &coord in &scene.layer_info[scene.maze.current_layer_index()].leaf_escapables {
             render_square(
-                &mut self.canvas,
+                canvas,
                 coord, Color::RGB(220, 192, 192), scene.camera
             );
         }
 
         render_square(
-            &mut self.canvas,
+            canvas,
             scene.maze.position(), Color::RGBA(0, 192, 0, 255), scene.camera
         );
 
@@ -80,7 +80,7 @@ impl<'c, 't> Renderer<'c, 't> {
         light_center.1 += CELL_SIZE as i32 / 2;
 
         let query = self.light_texture.query();
-        self.canvas.copy(
+        canvas.copy(
             &self.light_texture,
             None,
             Some(Rect::from_center(
@@ -88,8 +88,6 @@ impl<'c, 't> Renderer<'c, 't> {
                 query.width, query.height
             ))
         ).unwrap();
-
-        self.canvas.present();
     }
 }
 

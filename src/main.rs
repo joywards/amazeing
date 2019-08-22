@@ -12,15 +12,12 @@ mod scene;
 mod region;
 mod build;
 mod traversal;
-mod render;
 
 use std::collections::HashSet;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
-
-use render::Renderer;
 
 use geometry::Dir;
 
@@ -30,9 +27,11 @@ use maze::Maze;
 use traversal::Info;
 use scene::Scene;
 
-use render::{WINDOW_WIDTH, WINDOW_HEIGHT, VISIBILITY_RADIUS};
-
 const SIZE: i32 = 17;
+pub const VISIBILITY_RADIUS: i32 = 12;
+pub const WINDOW_WIDTH: u32 = 1400;
+pub const WINDOW_HEIGHT: u32 = 900;
+
 
 fn try_build(builder: &mut MazeBuilder) -> Result<(), GenerationError> {
     let first = builder.generate_first_layer((0, 0));
@@ -61,7 +60,6 @@ fn build_maze(seed: u64, visible_area: &Region) -> (Maze, Vec<Info>) {
 fn main() {
     let visible_area: Region = make_circle(VISIBILITY_RADIUS).collect::<HashSet<_>>().into();
     let (maze, layer_info) = build_maze(0, &visible_area);
-    let mut scene = Scene::new(maze, layer_info);
 
     let sdl_context: sdl2::Sdl = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -73,7 +71,8 @@ fn main() {
 
     let mut canvas = window.into_canvas().build().unwrap();
     let texture_creator = canvas.texture_creator();
-    let mut renderer = Renderer::new(&mut canvas, &texture_creator);
+
+    let mut scene = Scene::new(maze, layer_info, &texture_creator);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
@@ -101,7 +100,8 @@ fn main() {
 
         scene.update();
 
-        renderer.render(&scene, &visible_area);
+        scene.render(&mut canvas, &visible_area);
+        canvas.present();
 
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
