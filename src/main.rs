@@ -62,6 +62,7 @@ fn main() {
 
     let window = video_subsystem.window("Amazeing", WINDOW_WIDTH, WINDOW_HEIGHT)
         .position_centered()
+        .resizable()
         .build()
         .unwrap();
 
