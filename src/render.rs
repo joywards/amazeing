@@ -10,7 +10,7 @@ use crate::layer::Layer;
 use crate::geometry::Dir;
 
 use crate::region::Region;
-use crate::scene::Scene;
+use crate::scene::{Scene, Camera};
 
 pub type Canvas = sdl2::render::Canvas<sdl2::video::Window>;
 
@@ -44,26 +44,38 @@ impl<'c, 't> Renderer<'c, 't> {
         self.canvas.set_draw_color(Color::RGB(0, 0, 0));
         self.canvas.clear();
 
-        render_layer(&mut self.canvas, scene.maze.current_layer());
+        render_layer(&mut self.canvas, scene.maze.current_layer(), scene.camera);
         for &cell in visible_area.shifted_by(scene.maze.position()).boundary() {
             if scene.maze.current_layer().has(cell) {
-                render_square(&mut self.canvas, cell, Color::RGB(240, 240, 240));
+                render_square(
+                    &mut self.canvas,
+                    cell, Color::RGB(240, 240, 240), scene.camera
+                );
             }
         }
 
         for (&coord, coord_info) in scene.layer_info[scene.maze.current_layer_index()].coords.iter() {
             if coord_info.escapable.is_some() {
-                render_square(&mut self.canvas, coord, Color::RGB(192, 192, 192));
+                render_square(
+                    &mut self.canvas,
+                    coord, Color::RGB(192, 192, 192), scene.camera
+                );
             }
         }
 
         for &coord in &scene.layer_info[scene.maze.current_layer_index()].leaf_escapables {
-            render_square(&mut self.canvas, coord, Color::RGB(220, 192, 192));
+            render_square(
+                &mut self.canvas,
+                coord, Color::RGB(220, 192, 192), scene.camera
+            );
         }
 
-        render_square(&mut self.canvas, scene.maze.position(), Color::RGBA(0, 192, 0, 255));
+        render_square(
+            &mut self.canvas,
+            scene.maze.position(), Color::RGBA(0, 192, 0, 255), scene.camera
+        );
 
-        let mut light_center = to_view(scene.maze.position());
+        let mut light_center = to_view(scene.maze.position(), scene.camera);
         light_center.0 += CELL_SIZE as i32 / 2;
         light_center.1 += CELL_SIZE as i32 / 2;
 
@@ -82,12 +94,11 @@ impl<'c, 't> Renderer<'c, 't> {
 }
 
 
-fn to_view(scene_coord: (i32, i32)) -> (i32, i32) {
-    let scene_camera = (0, 0);
-    let view_camera = (WINDOW_WIDTH as i32 / 2, WINDOW_HEIGHT as i32 / 2);
-    let x = (scene_coord.0 - scene_camera.0) * CELL_SIZE as i32 + view_camera.0;
-    let y = (scene_coord.1 - scene_camera.1) * CELL_SIZE as i32 + view_camera.1;
-    (x, y)
+fn to_view(scene_coord: (i32, i32), scene_camera: Camera) -> (i32, i32) {
+    let view_camera = (WINDOW_WIDTH as f32 / 2.0, WINDOW_HEIGHT as f32 / 2.0);
+    let x = (scene_coord.0 as f32 - scene_camera.0) * CELL_SIZE as f32 + view_camera.0;
+    let y = (scene_coord.1 as f32 - scene_camera.1) * CELL_SIZE as f32 + view_camera.1;
+    (x as i32, y as i32)
 }
 
 fn fill_rect<X, Y, W, H>(
@@ -103,13 +114,13 @@ fn fill_rect<X, Y, W, H>(
     ))).unwrap();
 }
 
-fn render_layer(canvas: &mut Canvas, layer: &Layer) {
+fn render_layer(canvas: &mut Canvas, layer: &Layer, camera: Camera) {
     const RENDER_SIZE: i32 = 20;
     canvas.set_draw_color(Color::RGB(255, 255, 255));
     for (x, y) in (-RENDER_SIZE..=RENDER_SIZE).cartesian_product(-RENDER_SIZE..=RENDER_SIZE) {
         let coord = (x, y);
         if layer.has(coord) {
-            let view_coord = to_view(coord);
+            let view_coord = to_view(coord, camera);
 
             fill_rect(canvas, view_coord.0, view_coord.1, CELL_SIZE - 1, CELL_SIZE - 1);
             if layer.passable(coord, Dir::DOWN) {
@@ -122,9 +133,9 @@ fn render_layer(canvas: &mut Canvas, layer: &Layer) {
     }
 }
 
-fn render_square(canvas: &mut Canvas, coord: (i32, i32), color: Color) {
+fn render_square(canvas: &mut Canvas, coord: (i32, i32), color: Color, camera: Camera) {
     canvas.set_draw_color(color);
-    let view_coord = to_view(coord);
+    let view_coord = to_view(coord, camera);
     fill_rect(canvas, view_coord.0, view_coord.1, CELL_SIZE - 1, CELL_SIZE - 1);
 }
 

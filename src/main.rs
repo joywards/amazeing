@@ -99,6 +99,8 @@ fn main() {
             }
         }
 
+        scene.update();
+
         renderer.render(&scene, &visible_area);
 
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
