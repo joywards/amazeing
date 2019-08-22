@@ -10,8 +10,7 @@ use crate::layer::Layer;
 use crate::geometry::Dir;
 
 use crate::region::Region;
-use crate::maze::Maze;
-use crate::traversal::Info;
+use crate::scene::Scene;
 
 pub type Canvas = sdl2::render::Canvas<sdl2::video::Window>;
 
@@ -41,30 +40,30 @@ impl<'c, 't> Renderer<'c, 't> {
         }
     }
 
-    pub fn render(&mut self, maze: &Maze, layer_info: &[Info], visible_area: &Region) {
+    pub fn render(&mut self, scene: &Scene, visible_area: &Region) {
         self.canvas.set_draw_color(Color::RGB(0, 0, 0));
         self.canvas.clear();
 
-        render_layer(&mut self.canvas, maze.current_layer());
-        for &cell in visible_area.shifted_by(maze.position()).boundary() {
-            if maze.current_layer().has(cell) {
+        render_layer(&mut self.canvas, scene.maze.current_layer());
+        for &cell in visible_area.shifted_by(scene.maze.position()).boundary() {
+            if scene.maze.current_layer().has(cell) {
                 render_square(&mut self.canvas, cell, Color::RGB(240, 240, 240));
             }
         }
 
-        for (&coord, coord_info) in layer_info[maze.current_layer_index()].coords.iter() {
+        for (&coord, coord_info) in scene.layer_info[scene.maze.current_layer_index()].coords.iter() {
             if coord_info.escapable.is_some() {
                 render_square(&mut self.canvas, coord, Color::RGB(192, 192, 192));
             }
         }
 
-        for &coord in &layer_info[maze.current_layer_index()].leaf_escapables {
+        for &coord in &scene.layer_info[scene.maze.current_layer_index()].leaf_escapables {
             render_square(&mut self.canvas, coord, Color::RGB(220, 192, 192));
         }
 
-        render_square(&mut self.canvas, maze.position(), Color::RGBA(0, 192, 0, 255));
+        render_square(&mut self.canvas, scene.maze.position(), Color::RGBA(0, 192, 0, 255));
 
-        let mut light_center = to_view(maze.position());
+        let mut light_center = to_view(scene.maze.position());
         light_center.0 += CELL_SIZE as i32 / 2;
         light_center.1 += CELL_SIZE as i32 / 2;
 

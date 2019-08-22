@@ -8,6 +8,7 @@ mod layer;
 mod geometry;
 mod generation;
 mod maze;
+mod scene;
 mod region;
 mod build;
 mod traversal;
@@ -19,7 +20,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
 
-use crate::render::Renderer;
+use render::Renderer;
 
 use geometry::Dir;
 
@@ -27,6 +28,7 @@ use region::Region;
 use build::{make_circle, MazeBuilder, GenerationError};
 use maze::Maze;
 use traversal::Info;
+use scene::Scene;
 
 use render::{WINDOW_WIDTH, WINDOW_HEIGHT, VISIBILITY_RADIUS};
 
@@ -58,7 +60,8 @@ fn build_maze(seed: u64, visible_area: &Region) -> (Maze, Vec<Info>) {
 
 fn main() {
     let visible_area: Region = make_circle(VISIBILITY_RADIUS).collect::<HashSet<_>>().into();
-    let (mut maze, layer_info) = build_maze(0, &visible_area);
+    let (maze, layer_info) = build_maze(0, &visible_area);
+    let mut scene = Scene::new(maze, layer_info);
 
     let sdl_context: sdl2::Sdl = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -81,22 +84,22 @@ fn main() {
                     break 'running
                 },
                 Event::KeyDown { keycode: Some(Keycode::Down), .. } => {
-                    maze.try_move(Dir::DOWN);
+                    scene.maze.try_move(Dir::DOWN);
                 },
                 Event::KeyDown { keycode: Some(Keycode::Right), .. } => {
-                    maze.try_move(Dir::RIGHT);
+                    scene.maze.try_move(Dir::RIGHT);
                 },
                 Event::KeyDown { keycode: Some(Keycode::Up), .. } => {
-                    maze.try_move(Dir::UP);
+                    scene.maze.try_move(Dir::UP);
                 },
                 Event::KeyDown { keycode: Some(Keycode::Left), .. } => {
-                    maze.try_move(Dir::LEFT);
+                    scene.maze.try_move(Dir::LEFT);
                 },
                 _ => {}
             }
         }
 
-        renderer.render(&maze, &layer_info, &visible_area);
+        renderer.render(&scene, &visible_area);
 
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
