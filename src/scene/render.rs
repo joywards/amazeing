@@ -47,16 +47,16 @@ impl<'t> Renderer<'t> {
 
         self.render_current_layer(canvas, &scene);
 
-        for &cell in visible_area().shifted_by(scene.maze.position()).boundary() {
-            if scene.maze.current_layer().has(cell) {
-                self.render_square(
-                    canvas,
-                    cell, Color::RGB(240, 240, 240), scene.camera
-                );
-            }
-        }
-
         if DEBUG {
+            for &cell in visible_area().shifted_by(scene.maze.position()).boundary() {
+                if scene.maze.current_layer().has(cell) {
+                    self.render_square(
+                        canvas,
+                        cell, Color::RGB(240, 240, 240), scene.camera
+                    );
+                }
+            }
+
             let layer_info = scene.maze.clone_current_layer_info();
 
             for (&coord, coord_info) in layer_info.coords.iter() {
