@@ -68,10 +68,6 @@ impl Maze {
         &self.current_layer
     }
 
-    pub fn current_layer_index(&self) -> usize {
-        self.current_layer_index
-    }
-
     pub fn position(&self) -> (i32, i32) {
         self.position
     }
