@@ -29,7 +29,7 @@ impl<'t> Renderer<'t> {
     // such objects in a single structure.
     pub fn new(texture_creator: &'t TextureCreator<WindowContext>) -> Self {
         let light_radius = ((visibility_radius() as f32 - 1. / 2_f32.sqrt()) * CELL_SIZE as f32) as u32;
-        let texture_size = 1024; // TODO: calculate accurately
+        let texture_size = visibility_radius() as u32 * 2 * CELL_SIZE;
         let light_surface = create_light_surface(light_radius, texture_size).unwrap();
         Renderer {
             light_texture: texture_creator.create_texture_from_surface(
@@ -45,7 +45,8 @@ impl<'t> Renderer<'t> {
 
         self.window_size.set(canvas.output_size().unwrap());
 
-        self.render_layer(canvas, scene.maze.current_layer(), scene.camera);
+        self.render_current_layer(canvas, &scene);
+
         for &cell in visible_area().shifted_by(scene.maze.position()).boundary() {
             if scene.maze.current_layer().has(cell) {
                 self.render_square(
@@ -95,19 +96,27 @@ impl<'t> Renderer<'t> {
         ).unwrap();
     }
 
-    fn render_layer(&self, canvas: &mut Canvas, layer: &Layer, camera: Camera) {
-        const RENDER_SIZE: i32 = 20;
+    fn render_current_layer(&self, canvas: &mut Canvas, scene: &Scene) {
+        let layer: &Layer = scene.maze.current_layer();
+
+        let cells_iter: Vec<_> = if DEBUG {
+            const RENDER_SIZE: i32 = 20;
+            let range = -RENDER_SIZE..=RENDER_SIZE;
+            range.clone().cartesian_product(range).collect()
+        } else {
+            visible_area().shifted_by(scene.maze.position()).cells().iter().cloned().collect()
+        };
+
         canvas.set_draw_color(Color::RGB(255, 255, 255));
-        for (x, y) in (-RENDER_SIZE..=RENDER_SIZE).cartesian_product(-RENDER_SIZE..=RENDER_SIZE) {
-            let coord = (x, y);
-            if layer.has(coord) {
-                let view_coord = self.to_view(coord, camera);
+        for cell in cells_iter {
+            if layer.has(cell) {
+                let view_coord = self.to_view(cell, scene.camera);
 
                 self.fill_rect(canvas, view_coord.0, view_coord.1, CELL_SIZE - 1, CELL_SIZE - 1);
-                if layer.passable(coord, Dir::DOWN) {
+                if layer.passable(cell, Dir::DOWN) {
                     self.fill_rect(canvas, view_coord.0, view_coord.1, CELL_SIZE - 1, CELL_SIZE);
                 }
-                if layer.passable(coord, Dir::RIGHT) {
+                if layer.passable(cell, Dir::RIGHT) {
                     self.fill_rect(canvas, view_coord.0, view_coord.1, CELL_SIZE, CELL_SIZE - 1);
                 }
             }
