@@ -3,16 +3,17 @@ use std::collections::HashMap;
 
 use crate::layer::Layer;
 use crate::geometry::Dir;
+use crate::traversal;
 
 #[derive(Clone, Copy)]
 struct Transition {
     dest_layer: usize,
 }
 
-#[derive(Clone)]
-struct MazeLayer {
-    layer: Layer,
+pub struct MazeLayer {
+    pub layer: Layer,
     transitions: HashMap<(i32, i32), Transition>,
+    pub info: traversal::Info,
 }
 
 pub struct Maze {
@@ -36,6 +37,7 @@ impl Maze {
             layers: Mutex::new(vec![MazeLayer{
                 layer: layer.clone(),
                 transitions: HashMap::new(),
+                info: traversal::dfs(&layer, spawn_point, None),
             }]),
             position: spawn_point,
             current_layer_index: 0,
@@ -74,15 +76,21 @@ impl Maze {
         self.position
     }
 
-    pub fn clone_layer(&self, i: usize) -> Layer {
-        self.layers.lock().unwrap()[i].layer.clone()
+    pub fn clone_current_layer_info(&self) -> traversal::Info {
+        self.layers.lock().unwrap()[self.current_layer_index].info.clone()
     }
 
-    pub fn add_layer(&self, layer: Layer) -> usize {
+    // Uses mut reference because this way no runtime synchronization is needed.
+    pub fn maze_layer(&mut self, i: usize) -> &MazeLayer {
+        &self.layers.get_mut().unwrap()[i]
+    }
+
+    pub fn add_layer(&self, layer: Layer, info: traversal::Info) -> usize {
         let mut layers = self.layers.lock().unwrap();
         layers.push(MazeLayer{
             layer,
             transitions: HashMap::new(),
+            info
         });
         layers.len() - 1
     }
@@ -112,7 +120,7 @@ fn test_maze() {
     second.add((2, 2));
 
     let mut maze = Maze::new(first, (0, 0));
-    maze.add_layer(second);
+    maze.add_layer(second, traversal::Info::default());
     maze.add_transition((0, 1), Dir::DOWN, 0, 1);
 
     assert_eq!(maze.try_move(Dir::RIGHT), MoveResult::OBSTACLE);

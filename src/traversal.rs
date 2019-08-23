@@ -5,7 +5,7 @@ use crate::layer::Layer;
 use crate::visible_area::visible_area;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CoordInfo {
     /// Tells whether there is a cell in a subtree
     /// which is far enough from this one.
@@ -25,7 +25,7 @@ pub struct CoordInfo {
     pub came_from: Option<Dir>,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Info {
     pub coords: HashMap<(i32, i32), CoordInfo>,
 

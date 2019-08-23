@@ -60,7 +60,6 @@ impl std::error::Error for GenerationError {}
 
 pub struct MazeBuilder {
     maze: Option<Maze>,
-    layer_info: Vec<traversal::Info>,
 
     shape: Vec<(i32, i32)>,
     rng: SmallRng,
@@ -69,7 +68,7 @@ pub struct MazeBuilder {
 impl MazeBuilder {
     pub fn new(seed: u64, shape: Vec<(i32, i32)>) -> MazeBuilder {
         MazeBuilder{
-            maze: None, layer_info: Vec::new(), shape,
+            maze: None, shape,
             rng: SmallRng::seed_from_u64(seed)
         }
     }
@@ -78,9 +77,8 @@ impl MazeBuilder {
         self.maze.unwrap()
     }
 
-    /// Should be used for debug purposes only.
-    pub fn into_maze_and_layer_info(self) -> (Maze, Vec<traversal::Info>) {
-        (self.maze.unwrap(), self.layer_info)
+    fn traversal_info(&mut self, src_layer: usize) -> &traversal::Info {
+        &self.maze.as_mut().unwrap().maze_layer(src_layer).info
     }
 
     fn add_layer(
@@ -89,17 +87,17 @@ impl MazeBuilder {
         source_coord: (i32, i32),
     ) -> usize {
         let maze = self.maze.as_mut().unwrap();
-        let source_layer = maze.clone_layer(source_layer_index);
-        let layer_info = &self.layer_info[source_layer_index];
-        let back = layer_info.coords[&source_coord].came_from.unwrap();
+        let maze_layer = maze.maze_layer(source_layer_index);
+        let info = &maze_layer.info;
+        let back = info.coords[&source_coord].came_from.unwrap();
 
-        let escape = layer_info.coords[&source_coord].escapable.unwrap();
-        let path_to_escape = traversal::get_path_to(source_coord, escape, &layer_info);
+        let escape = info.coords[&source_coord].escapable.unwrap();
+        let path_to_escape = traversal::get_path_to(source_coord, escape, &info);
         let escape_dir = *path_to_escape.first().unwrap();
 
         let region_to_copy = visible_area().shifted_by(source_coord);
         let mut new_layer = Layer::default();
-        copy_region(&source_layer, &mut new_layer, &region_to_copy);
+        copy_region(&maze_layer.layer, &mut new_layer, &region_to_copy);
         for &coord in &self.shape {
             new_layer.add(coord);
         }
@@ -113,14 +111,13 @@ impl MazeBuilder {
             &mut self.rng
         );
 
-        self.layer_info.push(traversal::dfs(
+        let info = traversal::dfs(
             &new_layer, source_coord, Some(back)
-        ));
+        );
 
-        let new_layer_index = maze.add_layer(new_layer);
+        let new_layer_index = maze.add_layer(new_layer, info);
         maze.add_transition(source_coord, escape_dir, source_layer_index, new_layer_index);
 
-        assert_eq!(new_layer_index, self.layer_info.len() - 1);
         new_layer_index
     }
 
@@ -136,9 +133,6 @@ impl MazeBuilder {
         }
         generate(&mut layer, once(spawn_point), &Default::default(), &mut self.rng);
 
-        self.layer_info = vec![traversal::dfs(
-            &layer, spawn_point, None
-        )];
         self.maze = Some(Maze::new(layer, spawn_point));
         0
     }
@@ -147,7 +141,7 @@ impl MazeBuilder {
         &mut self,
         src_layer: usize,
     ) -> Result<usize, GenerationError> {
-        let info = &self.layer_info[src_layer];
+        let info = self.traversal_info(src_layer);
         let deepest = *info.leaf_escapables.iter().max_by_key(
             |coord| info.coords[&coord].depth
         ).ok_or(GenerationError{})?;
@@ -162,7 +156,7 @@ impl MazeBuilder {
         &mut self,
         src_layer: usize
     ) -> Result<(usize, usize), GenerationError> {
-        let leaf_escapables = &self.layer_info[src_layer].leaf_escapables;
+        let leaf_escapables = &self.traversal_info(src_layer).leaf_escapables;
         if leaf_escapables.len() < 2 {
             return Err(GenerationError{});
         }
@@ -178,7 +172,7 @@ impl MazeBuilder {
         &mut self,
         src_layer: usize
     ) -> Result<(usize, usize, usize), GenerationError> {
-        let info = &self.layer_info[src_layer];
+        let info = &self.traversal_info(src_layer);
         let leaf_escapables = &info.leaf_escapables;
 
         if leaf_escapables.len() < 3 {

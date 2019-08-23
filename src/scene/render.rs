@@ -16,6 +16,7 @@ use crate::scene::{Scene, Camera};
 pub type Canvas = sdl2::render::Canvas<sdl2::video::Window>;
 
 const CELL_SIZE: u32 = 17;
+const DEBUG: bool = true;
 
 pub struct Renderer<'t> {
     light_texture: Texture<'t>,
@@ -54,20 +55,24 @@ impl<'t> Renderer<'t> {
             }
         }
 
-        for (&coord, coord_info) in scene.layer_info[scene.maze.current_layer_index()].coords.iter() {
-            if coord_info.escapable.is_some() {
+        if DEBUG {
+            let layer_info = scene.maze.clone_current_layer_info();
+
+            for (&coord, coord_info) in layer_info.coords.iter() {
+                if coord_info.escapable.is_some() {
+                    self.render_square(
+                        canvas,
+                        coord, Color::RGB(192, 192, 192), scene.camera
+                    );
+                }
+            }
+
+            for &coord in &layer_info.leaf_escapables {
                 self.render_square(
                     canvas,
-                    coord, Color::RGB(192, 192, 192), scene.camera
+                    coord, Color::RGB(220, 192, 192), scene.camera
                 );
             }
-        }
-
-        for &coord in &scene.layer_info[scene.maze.current_layer_index()].leaf_escapables {
-            self.render_square(
-                canvas,
-                coord, Color::RGB(220, 192, 192), scene.camera
-            );
         }
 
         self.render_square(

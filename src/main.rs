@@ -24,7 +24,6 @@ use std::time::{Duration, SystemTime};
 use geometry::Dir;
 use build::{make_circle, MazeBuilder, GenerationError};
 use maze::Maze;
-use traversal::Info;
 use scene::Scene;
 
 const SIZE: i32 = 17;
@@ -41,7 +40,7 @@ fn try_build(builder: &mut MazeBuilder) -> Result<(), GenerationError> {
     Ok(())
 }
 
-fn build_maze(seed: u64) -> (Maze, Vec<Info>) {
+fn build_maze(seed: u64) -> Maze {
     let shape: Vec<_> = make_circle(SIZE).collect();
 
     let mut builder = MazeBuilder::new(seed, shape);
@@ -52,11 +51,11 @@ fn build_maze(seed: u64) -> (Maze, Vec<Info>) {
             println!("Generation error");
         }
     }
-    builder.into_maze_and_layer_info()
+    builder.into_maze()
 }
 
 fn main() {
-    let (maze, layer_info) = build_maze(0);
+    let maze = build_maze(0);
 
     let sdl_context: sdl2::Sdl = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -70,7 +69,7 @@ fn main() {
     let mut canvas = window.into_canvas().build().unwrap();
     let texture_creator = canvas.texture_creator();
 
-    let mut scene = Scene::new(maze, layer_info, &texture_creator);
+    let mut scene = Scene::new(maze, &texture_creator);
 
     let mut last_time = std::time::SystemTime::now();
     let mut event_pump = sdl_context.event_pump().unwrap();
