@@ -14,6 +14,7 @@ mod scene;
 mod region;
 mod build;
 mod traversal;
+mod levels;
 mod visible_area;
 mod tuple_arithmetic;
 
@@ -22,40 +23,15 @@ use sdl2::keyboard::Keycode;
 use std::time::{Duration, SystemTime};
 
 use geometry::Dir;
-use build::{make_circle, MazeBuilder, GenerationError};
-use maze::Maze;
 use scene::Scene;
+use levels::*;
 
-const SIZE: i32 = 17;
 pub const WINDOW_WIDTH: u32 = 1400;
 pub const WINDOW_HEIGHT: u32 = 900;
 
 
-fn try_build(builder: &mut MazeBuilder) -> Result<(), GenerationError> {
-    let first = builder.generate_first_layer((0, 0));
-    let (_, mut last, _) = builder.fork_to_three_layers(first)?;
-    for _ in 0..9 {
-        last = builder.add_layer_from_deepest_point(last)?;
-    }
-    Ok(())
-}
-
-fn build_maze(seed: u64) -> Maze {
-    let shape: Vec<_> = make_circle(SIZE).collect();
-
-    let mut builder = MazeBuilder::new(seed, shape);
-    loop {
-        if try_build(&mut builder).is_ok() {
-            break;
-        } else {
-            println!("Generation error");
-        }
-    }
-    builder.into_maze()
-}
-
 fn main() {
-    let maze = build_maze(0);
+    let maze = levels::Debug::generate(0).unwrap();
 
     let sdl_context: sdl2::Sdl = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
