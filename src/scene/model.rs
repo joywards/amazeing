@@ -1,8 +1,12 @@
+use std::time::Duration;
+
+use sdl2::render::TextureCreator;
+use sdl2::video::WindowContext;
+
 use crate::maze::Maze;
 use crate::traversal::Info;
 use crate::scene::{Renderer, Canvas};
-use sdl2::render::TextureCreator;
-use sdl2::video::WindowContext;
+use crate::tuple_arithmetic::linear_interpolation;
 
 
 pub type Camera = (f32, f32);
@@ -30,9 +34,11 @@ impl<'t> Scene<'t> {
         }
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self, elapsed: Duration) {
+        const ACCELERATION_PER_MS: f32 = 0.997;
         let pos = self.maze.position();
-        self.camera = (pos.0 as f32, pos.1 as f32);
+        let ratio = ACCELERATION_PER_MS.powf(elapsed.as_millis() as f32);
+        self.camera = linear_interpolation(pos, self.camera, ratio);
     }
 
     pub fn render(&self, canvas: &mut Canvas) {

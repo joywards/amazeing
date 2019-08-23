@@ -15,10 +15,11 @@ mod region;
 mod build;
 mod traversal;
 mod visible_area;
+mod tuple_arithmetic;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use geometry::Dir;
 use build::{make_circle, MazeBuilder, GenerationError};
@@ -71,6 +72,7 @@ fn main() {
 
     let mut scene = Scene::new(maze, layer_info, &texture_creator);
 
+    let mut last_time = std::time::SystemTime::now();
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
         for event in event_pump.poll_iter() {
@@ -95,11 +97,14 @@ fn main() {
             }
         }
 
-        scene.update();
+        let new_time = SystemTime::now();
+        let elapsed = new_time.duration_since(last_time).unwrap();
+        scene.update(elapsed);
+        last_time = new_time;
 
         scene.render(&mut canvas);
         canvas.present();
 
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
+        ::std::thread::sleep(Duration::from_micros(1_000_000u64 / 60));
     }
 }
