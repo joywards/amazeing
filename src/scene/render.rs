@@ -81,19 +81,21 @@ impl<'t> Renderer<'t> {
             scene.maze.position(), Color::RGBA(0, 192, 0, 255), scene.camera
         );
 
-        let mut light_center = self.to_view(scene.maze.position(), scene.camera);
-        light_center.0 += CELL_SIZE as i32 / 2;
-        light_center.1 += CELL_SIZE as i32 / 2;
+        if !DEBUG {
+            let mut light_center = self.to_view(scene.maze.position(), scene.camera);
+            light_center.0 += CELL_SIZE as i32 / 2;
+            light_center.1 += CELL_SIZE as i32 / 2;
 
-        let query = self.light_texture.query();
-        canvas.copy(
-            &self.light_texture,
-            None,
-            Some(Rect::from_center(
-                light_center,
-                query.width, query.height
-            ))
-        ).unwrap();
+            let query = self.light_texture.query();
+            canvas.copy(
+                &self.light_texture,
+                None,
+                Some(Rect::from_center(
+                    light_center,
+                    query.width, query.height
+                ))
+            ).unwrap();
+        }
     }
 
     fn render_current_layer(&self, canvas: &mut Canvas, scene: &Scene) {
@@ -153,7 +155,6 @@ impl<'t> Renderer<'t> {
 }
 
 fn create_light_surface(radius: u32, size: u32) -> Result<Surface<'static>, String> {
-    let max_opacity = if DEBUG { 192 } else { 255 };
     let center = size / 2;
     let surface = Surface::new(size, size, sdl2::pixels::PixelFormatEnum::RGBA32)?;
     let mut canvas = surface.into_canvas()?;
@@ -164,10 +165,10 @@ fn create_light_surface(radius: u32, size: u32) -> Result<Surface<'static>, Stri
             let d_squared = x.pow(2) + y.pow(2);
             if d_squared < (radius as i32).pow(2) {
                 let k = d_squared as f32 / (radius as f32).powi(2);
-                let opacity = (k.powi(3) * f32::from(max_opacity)) as u8;
+                let opacity = (k.powi(3) * 255.0) as u8;
                 canvas.set_draw_color(Color::RGBA(0, 0, 0, opacity));
             } else {
-                canvas.set_draw_color(Color::RGBA(0, 0, 0, max_opacity));
+                canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
             }
             canvas.draw_point((i as i32, j as i32)).unwrap();
         }
