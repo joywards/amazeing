@@ -5,7 +5,7 @@ use sdl2::video::WindowContext;
 
 use crate::maze::Maze;
 use crate::scene::{Renderer, Canvas};
-use crate::tuple_arithmetic::linear_interpolation;
+use crate::utils::tuple_arithmetic::linear_interpolation;
 
 
 pub type Camera = (f32, f32);

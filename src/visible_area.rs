@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use crate::region::Region;
+use crate::utils::region::Region;
 use crate::build::make_circle;
 
 // This value is used by both renderer and maze builder.

@@ -5,18 +5,16 @@ extern crate itertools;
 #[macro_use]
 extern crate lazy_static;
 
-mod dsu;
-mod layer;
+mod utils;
 mod geometry;
-mod generation;
+mod layer;
 mod maze;
-mod scene;
-mod region;
+mod generation;
 mod build;
+mod visible_area;
 mod traversal;
 mod levels;
-mod visible_area;
-mod tuple_arithmetic;
+mod scene;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;

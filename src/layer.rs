@@ -1,4 +1,4 @@
-use crate::dsu::DSU;
+use crate::utils::dsu::DSU;
 use crate::geometry::Dir;
 use std::collections::HashMap;
 

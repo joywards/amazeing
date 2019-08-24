@@ -3,7 +3,7 @@ use rand::rngs::SmallRng;
 use rand::SeedableRng;
 
 use crate::layer::Layer;
-use crate::region::Region;
+use crate::utils::region::Region;
 use crate::visible_area::visible_area;
 use crate::maze::Maze;
 use crate::geometry::{Dir, DIRECTIONS};
