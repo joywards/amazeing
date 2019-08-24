@@ -3,43 +3,40 @@ use std::cell::Cell;
 
 use sdl2::pixels::Color;
 use sdl2::surface::Surface;
-use sdl2::render::{Texture, TextureCreator};
 use sdl2::rect::Rect;
-use sdl2::video::WindowContext;
 
 use crate::layer::Layer;
 use crate::geometry::Dir;
-
 use crate::visible_area::{visibility_radius, visible_area};
 use crate::scene::{Scene, Camera};
-
-pub type Canvas = sdl2::render::Canvas<sdl2::video::Window>;
+use crate::render::{Canvas, Target};
 
 const CELL_SIZE: u32 = 17;
 const DEBUG: bool = true;
 
-pub struct Renderer<'t> {
-    light_texture: Texture<'t>,
+pub struct Renderer {
     window_size: Cell<(u32, u32)>,
 }
 
-impl<'t> Renderer<'t> {
-    // TextureCreator can not be stored inside Renderer because it has to
-    // outlive every created texture and borrow checker doesn't allow to store
-    // such objects in a single structure.
-    pub fn new(texture_creator: &'t TextureCreator<WindowContext>) -> Self {
-        let light_radius = ((visibility_radius() as f32 - 1. / 2_f32.sqrt()) * CELL_SIZE as f32) as u32;
-        let texture_size = visibility_radius() as u32 * 2 * CELL_SIZE;
-        let light_surface = create_light_surface(light_radius, texture_size).unwrap();
+impl Renderer {
+    pub fn new() -> Self {
         Renderer {
-            light_texture: texture_creator.create_texture_from_surface(
-                light_surface
-            ).unwrap(),
             window_size: Cell::new((0, 0))
         }
     }
+    pub fn initialize(&self, renderer: &mut Target) {
+        if renderer.textures.light.is_none() {
+            let light_surface = create_light_surface().unwrap();
+            renderer.textures.light = Some(
+                renderer.texture_creator.create_texture_from_surface(light_surface).unwrap()
+            );
+        }
+    }
 
-    pub fn render(&self, scene: &Scene, canvas: &mut Canvas) {
+    pub fn render(&self, scene: &Scene, renderer: &mut Target) {
+        self.initialize(renderer);
+        let canvas = &mut renderer.canvas;
+
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
 
@@ -86,9 +83,10 @@ impl<'t> Renderer<'t> {
             light_center.0 += CELL_SIZE as i32 / 2;
             light_center.1 += CELL_SIZE as i32 / 2;
 
-            let query = self.light_texture.query();
+            let light_texture: &_ = renderer.textures.light.as_ref().unwrap();
+            let query = light_texture.query();
             canvas.copy(
-                &self.light_texture,
+                light_texture,
                 None,
                 Some(Rect::from_center(
                     light_center,
@@ -154,7 +152,9 @@ impl<'t> Renderer<'t> {
     }
 }
 
-fn create_light_surface(radius: u32, size: u32) -> Result<Surface<'static>, String> {
+fn create_light_surface() -> Result<Surface<'static>, String> {
+    let radius = ((visibility_radius() as f32 - 1. / 2_f32.sqrt()) * CELL_SIZE as f32) as u32;
+    let size = visibility_radius() as u32 * 2 * CELL_SIZE;
     let center = size / 2;
     let surface = Surface::new(size, size, sdl2::pixels::PixelFormatEnum::RGBA32)?;
     let mut canvas = surface.into_canvas()?;
