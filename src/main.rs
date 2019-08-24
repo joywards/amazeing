@@ -43,7 +43,8 @@ fn main() {
     let mut canvas = window.into_canvas().build().unwrap();
     let texture_creator = canvas.texture_creator();
 
-    let mut scene = Scene::new(maze, &texture_creator);
+    let mut scene = Scene::new(maze);
+    let scene_renderer = scene::Renderer::new(&texture_creator);
 
     let mut last_time = std::time::SystemTime::now();
     let mut event_pump = sdl_context.event_pump().unwrap();
@@ -75,7 +76,7 @@ fn main() {
         scene.update(elapsed);
         last_time = new_time;
 
-        scene.render(&mut canvas);
+        scene_renderer.render(&scene, &mut canvas);
         canvas.present();
 
         ::std::thread::sleep(Duration::from_micros(1_000_000u64 / 60));
