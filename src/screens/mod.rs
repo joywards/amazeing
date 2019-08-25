@@ -1,4 +1,5 @@
 pub mod scene;
+pub mod menu;
 mod manager;
 
 use std::time::Duration;

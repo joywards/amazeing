@@ -20,10 +20,8 @@ mod screens;
 
 use std::time::{Duration, SystemTime};
 
-use scene::Scene;
-use levels::*;
 use render::Target;
-use screens::scene::SceneScreen;
+use screens::menu::MenuScreen;
 use screens::{Screen, ScreenManager};
 
 pub const WINDOW_WIDTH: u32 = 1400;
@@ -31,8 +29,6 @@ pub const WINDOW_HEIGHT: u32 = 900;
 
 
 fn main() {
-    let maze = levels::Debug::generate(0).unwrap();
-
     let sdl_context: sdl2::Sdl = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
@@ -46,9 +42,9 @@ fn main() {
     let texture_creator = canvas.texture_creator();
     let mut render_target = Target::new(canvas, &texture_creator);
 
-    let scene = Scene::new(maze);
-    let scene_screen = SceneScreen::new(scene);
-    let mut manager = ScreenManager::new(Box::new(scene_screen));
+    let mut manager = ScreenManager::new(Box::new(
+        MenuScreen::new()
+    ));
 
     let mut last_time = std::time::SystemTime::now();
     let mut event_pump = sdl_context.event_pump().unwrap();

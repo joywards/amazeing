@@ -1,7 +1,8 @@
-use std::time::Duration;
 use crate::geometry::Dir;
+use crate::maze::Maze;
 use crate::scene;
 use crate::screens::*;
+use crate::screens::menu::MenuScreen;
 
 pub struct SceneScreen {
     scene: scene::Scene,
@@ -9,9 +10,9 @@ pub struct SceneScreen {
 }
 
 impl SceneScreen {
-    pub fn new(scene: scene::Scene) -> Self {
+    pub fn from_maze(maze: Maze) -> Self {
         Self {
-            scene,
+            scene: scene::Scene::new(maze),
             renderer: scene::Renderer::new(),
         }
     }
@@ -21,7 +22,7 @@ impl Screen for SceneScreen {
     fn handle_event(&mut self, event: &sdl2::event::Event) -> Transition {
         match event {
             Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                return Transition::Exit;
+                return Transition::Goto(Box::new(MenuScreen::new()));
             },
             Event::KeyDown { keycode: Some(Keycode::Down), .. } => {
                 self.scene.maze.try_move(Dir::DOWN);
