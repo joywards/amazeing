@@ -134,6 +134,9 @@ impl MazeBuilder {
         generate(&mut layer, once(spawn_point), &Default::default(), &mut self.rng);
 
         self.maze = Some(Maze::new(layer, spawn_point));
+
+        self.set_finish_at_deepest_point(0);
+
         0
     }
 
@@ -146,10 +149,13 @@ impl MazeBuilder {
             |coord| info.coords[&coord].depth
         ).ok_or(GenerationError{})?;
 
-        Ok(self.add_layer(
+        let new_layer_index = self.add_layer(
             src_layer,
             deepest
-        ))
+        );
+        self.set_finish_at_deepest_point(new_layer_index);
+
+        Ok(new_layer_index)
     }
 
     pub fn fork_to_two_layers(
@@ -188,6 +194,19 @@ impl MazeBuilder {
             self.add_layer(src_layer, deepest),
             self.add_layer(src_layer, last)
         ))
+    }
+
+    pub fn set_finish_at_deepest_point(
+        &mut self,
+        src_layer: usize,
+    ) {
+        let info = self.traversal_info(src_layer);
+        let (&deepest, _) = info.coords.iter().max_by_key(
+            |(_coord, info)| info.depth
+        ).expect("layer has no reachable cells");
+
+        let maze = self.maze.as_mut().unwrap();
+        maze.set_finish(src_layer, deepest);
     }
 }
 

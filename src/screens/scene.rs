@@ -1,5 +1,5 @@
 use crate::geometry::Dir;
-use crate::maze::Maze;
+use crate::maze::{Maze, MoveResult};
 use crate::scene;
 use crate::screens::*;
 use crate::screens::menu::MenuScreen;
@@ -18,27 +18,45 @@ impl SceneScreen {
     }
 }
 
+enum Action {
+    Exit,
+    Move(Dir),
+    Nothing,
+}
+
 impl Screen for SceneScreen {
     fn handle_event(&mut self, event: &sdl2::event::Event) -> Transition {
-        match event {
+        let action = match event {
             Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                return Transition::Goto(Box::new(MenuScreen::new()));
+                Action::Exit
             },
             Event::KeyDown { keycode: Some(Keycode::Down), .. } => {
-                self.scene.maze.try_move(Dir::DOWN);
+                Action::Move(Dir::DOWN)
             },
             Event::KeyDown { keycode: Some(Keycode::Right), .. } => {
-                self.scene.maze.try_move(Dir::RIGHT);
+                Action::Move(Dir::RIGHT)
             },
             Event::KeyDown { keycode: Some(Keycode::Up), .. } => {
-                self.scene.maze.try_move(Dir::UP);
+                Action::Move(Dir::UP)
             },
             Event::KeyDown { keycode: Some(Keycode::Left), .. } => {
-                self.scene.maze.try_move(Dir::LEFT);
+                Action::Move(Dir::LEFT)
             },
-            _ => {}
+            _ => Action::Nothing
+        };
+
+        match action {
+            Action::Exit => Transition::Goto(Box::new(MenuScreen::new())),
+
+            Action::Move(dir) => {
+                if self.scene.maze.try_move(dir) == MoveResult::FINISH {
+                    Transition::Goto(Box::new(MenuScreen::new()))
+                } else {
+                    Transition::Stay
+                }
+            },
+            Action::Nothing => Transition::Stay
         }
-        Transition::Stay
     }
 
     fn update(&mut self, elapsed: Duration) -> Transition {

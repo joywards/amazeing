@@ -20,6 +20,7 @@ pub struct Maze {
     layers: Mutex<Vec<MazeLayer>>,
     position: (i32, i32),
     current_layer_index: usize,
+    finish: (i32, i32, usize),
     // A copy of current layer is made for avoiding
     // thread synchronization during rendering.
     current_layer: Layer,
@@ -29,6 +30,7 @@ pub struct Maze {
 pub enum MoveResult{
     SUCCESS,
     OBSTACLE,
+    FINISH,
 }
 
 impl Maze {
@@ -41,6 +43,7 @@ impl Maze {
             }]),
             position: spawn_point,
             current_layer_index: 0,
+            finish: (0, 0, 0),
             current_layer: layer
         }
     }
@@ -58,7 +61,11 @@ impl Maze {
         if self.current_layer.passable(self.position, dir) {
             self.position = self.position + dir;
             self.change_layer_if_necessary();
-            MoveResult::SUCCESS
+            if self.is_at_finish() {
+                MoveResult::FINISH
+            } else {
+                MoveResult::SUCCESS
+            }
         } else {
             MoveResult::OBSTACLE
         }
@@ -66,6 +73,10 @@ impl Maze {
 
     pub fn current_layer(&self) -> &Layer {
         &self.current_layer
+    }
+
+    pub fn current_layer_index(&self) -> usize {
+        self.current_layer_index
     }
 
     pub fn position(&self) -> (i32, i32) {
@@ -79,6 +90,21 @@ impl Maze {
     // Uses mut reference because this way no runtime synchronization is needed.
     pub fn maze_layer(&mut self, i: usize) -> &MazeLayer {
         &self.layers.get_mut().unwrap()[i]
+    }
+
+    pub fn set_finish(&mut self, layer_index: usize, pos: (i32, i32)) {
+        self.finish = (pos.0, pos.1, layer_index);
+    }
+
+    pub fn finish(&self) -> (i32, i32, usize) {
+        self.finish
+    }
+
+    fn is_at_finish(&self) -> bool {
+        (
+            self.current_layer_index == self.finish.2
+            && self.position == (self.finish.0, self.finish.1)
+        )
     }
 
     pub fn add_layer(&self, layer: Layer, info: traversal::Info) -> usize {

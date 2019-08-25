@@ -73,10 +73,25 @@ impl Renderer {
             }
         }
 
+        // Current position
         self.render_square(
             canvas,
-            scene.maze.position(), Color::RGBA(0, 192, 0, 255), scene.camera
+            scene.maze.position(), Color::RGBA(128, 128, 128, 255), scene.camera
         );
+
+        // Finish
+        let finish = scene.maze.finish();
+        if finish.2 == scene.maze.current_layer_index() {
+            let finish_position = (finish.0, finish.1);
+            let visible_area = visible_area().shifted_by(scene.maze.position());
+            if visible_area.cells().contains(&(finish.0, finish.1))
+            {
+                self.render_square(
+                    canvas,
+                    finish_position, Color::RGBA(0, 192, 0, 255), scene.camera
+                );
+            }
+        }
 
         if !DEBUG {
             let mut light_center = self.to_view(scene.maze.position(), scene.camera);
