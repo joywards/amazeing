@@ -17,6 +17,7 @@ mod levels;
 mod scene;
 mod render;
 mod screens;
+mod observers;
 
 use std::time::{Duration, SystemTime};
 

@@ -1,6 +1,7 @@
 use crate::screens::*;
 use crate::screens::scene::SceneScreen;
 use crate::levels::*;
+use crate::utils::persistent_state::get_persistent_state;
 use sdl2::keyboard::Keycode;
 
 pub struct MenuScreen {
@@ -36,8 +37,10 @@ impl Screen for MenuScreen {
             Action::Exit => Transition::Exit,
             Action::Nothing => Transition::Stay,
             Action::StartLevel(generator) => {
+                let stage = get_persistent_state().lock().unwrap()
+                    .progress.completed_stages(generator.id());
                 Transition::Goto(Box::new(SceneScreen::from_maze(
-                    generator.generate(0).unwrap(),
+                    generator.generate(stage).unwrap(),
                     generator.id()
                 )))
             },

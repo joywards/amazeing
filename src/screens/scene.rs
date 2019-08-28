@@ -3,6 +3,7 @@ use crate::maze::{Maze, MoveResult};
 use crate::scene;
 use crate::screens::*;
 use crate::screens::menu::MenuScreen;
+use crate::observers::{level_completion_observer, LevelCompleted};
 
 pub struct SceneScreen {
     scene: scene::Scene,
@@ -50,6 +51,10 @@ impl Screen for SceneScreen {
 
             Action::Move(dir) => {
                 if self.scene.maze.try_move(dir) == MoveResult::FINISH {
+                    level_completion_observer().lock().unwrap()
+                        .notify(LevelCompleted {
+                            level: self.scene.level_id
+                        });
                     Transition::Goto(Box::new(MenuScreen::new()))
                 } else {
                     Transition::Stay
