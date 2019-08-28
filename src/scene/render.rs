@@ -12,7 +12,7 @@ use crate::scene::{Scene, Camera};
 use crate::render::{Canvas, Target};
 
 const CELL_SIZE: u32 = 17;
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 
 pub struct Renderer {
     window_size: Cell<(u32, u32)>,
