@@ -28,6 +28,9 @@ impl Screen for MenuScreen {
                 Action::StartLevel(Box::new(Plain()))
             },
             Event::KeyDown { keycode: Some(Keycode::Num2), .. } => {
+                Action::StartLevel(Box::new(Double()))
+            },
+            Event::KeyDown { keycode: Some(Keycode::Num9), .. } => {
                 Action::StartLevel(Box::new(Debug()))
             },
             _ => Action::Nothing

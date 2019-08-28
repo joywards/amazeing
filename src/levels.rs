@@ -12,7 +12,7 @@ pub struct Plain();
 
 impl LevelGenerator for Plain {
     fn generate(&self, stage: u64) -> Result<Maze, GenerationError> {
-        let radius = 12 + stage as i32;
+        let radius = 8 + stage as i32;
         let shape = make_circle(radius).collect();
         let mut builder = MazeBuilder::new(stage, shape);
         builder.generate_first_layer((0, 0));
@@ -20,6 +20,22 @@ impl LevelGenerator for Plain {
     }
 
     fn id(&self) -> &'static str { "plain" }
+}
+
+
+pub struct Double();
+
+impl LevelGenerator for Double {
+    fn generate(&self, stage: u64) -> Result<Maze, GenerationError> {
+        let radius = 11 + stage as i32;
+        let shape = make_circle(radius).collect();
+        let mut builder = MazeBuilder::new(stage, shape);
+        let first = builder.generate_first_layer((0, 0));
+        builder.add_layer_from_deepest_point(first).unwrap();
+        Ok(builder.into_maze())
+    }
+
+    fn id(&self) -> &'static str { "double" }
 }
 
 
