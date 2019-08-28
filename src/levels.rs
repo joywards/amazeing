@@ -3,15 +3,15 @@ use crate::maze::Maze;
 
 
 pub trait LevelGenerator {
-    fn generate(stage: u64) -> Result<Maze, GenerationError>;
-    fn name() -> &'static str;
+    fn generate(&self, stage: u64) -> Result<Maze, GenerationError>;
+    fn id(&self) -> &'static str;
 }
 
 
 pub struct Plain();
 
 impl LevelGenerator for Plain {
-    fn generate(stage: u64) -> Result<Maze, GenerationError> {
+    fn generate(&self, stage: u64) -> Result<Maze, GenerationError> {
         let radius = 12 + stage as i32;
         let shape = make_circle(radius).collect();
         let mut builder = MazeBuilder::new(stage, shape);
@@ -19,14 +19,14 @@ impl LevelGenerator for Plain {
         Ok(builder.into_maze())
     }
 
-    fn name() -> &'static str { "plain" }
+    fn id(&self) -> &'static str { "plain" }
 }
 
 
 pub struct Debug();
 
 impl LevelGenerator for Debug {
-    fn generate(stage: u64) -> Result<Maze, GenerationError> {
+    fn generate(&self, stage: u64) -> Result<Maze, GenerationError> {
         let radius = 17 + stage as i32;
         let shape = make_circle(radius).collect();
         let mut builder = MazeBuilder::new(stage, shape);
@@ -39,5 +39,5 @@ impl LevelGenerator for Debug {
         Ok(builder.into_maze())
     }
 
-    fn name() -> &'static str { "debug" }
+    fn id(&self) -> &'static str { "debug" }
 }

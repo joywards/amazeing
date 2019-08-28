@@ -12,24 +12,35 @@ impl MenuScreen {
     }
 }
 
+enum Action {
+    Exit,
+    StartLevel(Box<dyn LevelGenerator>),
+    Nothing,
+}
+
 impl Screen for MenuScreen {
     fn handle_event(&mut self, event: &sdl2::event::Event) -> Transition {
         // TODO: generate levels asynchroniously.
-        match event {
-            Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                Transition::Exit
-            },
+        let action = match event {
+            Event::KeyDown { keycode: Some(Keycode::Escape), .. } => Action::Exit,
             Event::KeyDown { keycode: Some(Keycode::Num1), .. } => {
-                Transition::Goto(Box::new(SceneScreen::from_maze(
-                    Plain::generate(0).unwrap()
-                )))
+                Action::StartLevel(Box::new(Plain()))
             },
             Event::KeyDown { keycode: Some(Keycode::Num2), .. } => {
+                Action::StartLevel(Box::new(Debug()))
+            },
+            _ => Action::Nothing
+        };
+
+        match action {
+            Action::Exit => Transition::Exit,
+            Action::Nothing => Transition::Stay,
+            Action::StartLevel(generator) => {
                 Transition::Goto(Box::new(SceneScreen::from_maze(
-                    Debug::generate(0).unwrap()
+                    generator.generate(0).unwrap(),
+                    generator.id()
                 )))
             },
-            _ => Transition::Stay
         }
     }
 

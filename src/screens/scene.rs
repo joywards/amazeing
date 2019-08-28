@@ -10,9 +10,9 @@ pub struct SceneScreen {
 }
 
 impl SceneScreen {
-    pub fn from_maze(maze: Maze) -> Self {
+    pub fn from_maze(maze: Maze, level_id: &'static str) -> Self {
         Self {
-            scene: scene::Scene::new(maze),
+            scene: scene::Scene::new(maze, level_id),
             renderer: scene::Renderer::new(),
         }
     }

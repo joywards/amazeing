@@ -9,16 +9,19 @@ pub type Camera = (f32, f32);
 pub struct Scene {
     pub maze: Maze,
     pub camera: Camera,
+    pub level_id: &'static str,
 }
 
 
 impl Scene {
     pub fn new(
         maze: Maze,
+        level_id: &'static str
     ) -> Scene {
         Scene{
             maze,
             camera: (0.0, 0.0),
+            level_id,
         }
     }
 
