@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crate::maze::Maze;
-use crate::utils::tuple_arithmetic::linear_interpolation;
+use crate::utils::tuple_arithmetic::{distance, linear_interpolation};
 
 
 pub type Camera = (f32, f32);
@@ -28,7 +28,11 @@ impl Scene {
     pub fn update(&mut self, elapsed: Duration) {
         const ACCELERATION_PER_MS: f32 = 0.997;
         let pos = self.maze.position();
-        let ratio = ACCELERATION_PER_MS.powf(elapsed.as_millis() as f32);
-        self.camera = linear_interpolation(pos, self.camera, ratio);
+        if distance(pos, self.camera) < 0.05 {
+            self.camera = (pos.0 as f32, pos.1 as f32);
+        } else {
+            let ratio = ACCELERATION_PER_MS.powf(elapsed.as_millis() as f32);
+            self.camera = linear_interpolation(pos, self.camera, ratio);
+        }
     }
 }

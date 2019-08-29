@@ -22,3 +22,21 @@ fn test_linear_interpolation() {
     assert_eq!(linear_interpolation(a, b, 0.25), (1.25, 1.5));
     assert_eq!(linear_interpolation(a, b, 1.0), (2.0, 3.0));
 }
+
+
+pub fn distance(
+    a: (impl Into<f64>, impl Into<f64>),
+    b: (impl Into<f64>, impl Into<f64>),
+) -> f32 {
+    (
+        (a.0.into() - b.0.into()).powi(2) +
+        (a.1.into() - b.1.into()).powi(2)
+    ).sqrt() as f32
+}
+
+#[test]
+fn test_distance() {
+    let a = (1, 1);
+    let b = (4, 5.0);
+    assert_eq!(distance(a, b), 5.0);
+}
