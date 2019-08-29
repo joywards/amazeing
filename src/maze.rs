@@ -142,8 +142,9 @@ fn test_maze() {
     second.add((2, 2));
 
     let mut maze = Maze::new(first, (0, 0));
-    maze.add_layer(second, traversal::Info::default());
+    let second_layer = maze.add_layer(second, traversal::Info::default());
     maze.add_transition((0, 1), Dir::DOWN, 0, 1);
+    maze.set_finish(second_layer, (0, 3));
 
     assert_eq!(maze.try_move(Dir::RIGHT), MoveResult::OBSTACLE);
     assert_eq!(maze.try_move(Dir::DOWN), MoveResult::SUCCESS);
@@ -156,7 +157,7 @@ fn test_maze() {
     assert_eq!(maze.current_layer_index, 1);
     assert!(maze.current_layer.has((2, 2)));
 
-    assert_eq!(maze.try_move(Dir::DOWN), MoveResult::SUCCESS);
+    assert_eq!(maze.try_move(Dir::DOWN), MoveResult::FINISH);
     assert_eq!(maze.position, (0, 3));
     assert_eq!(maze.current_layer_index, 1);
 
