@@ -2,7 +2,7 @@ use crate::build::{MazeBuilder, make_circle, GenerationError};
 use crate::maze::Maze;
 
 
-pub trait LevelGenerator {
+pub trait LevelGenerator: std::marker::Send {
     fn generate(&self, stage: u64) -> Result<Maze, GenerationError>;
     fn id(&self) -> &'static str;
 }

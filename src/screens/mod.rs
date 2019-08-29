@@ -1,5 +1,6 @@
 pub mod scene;
 pub mod menu;
+pub mod loading;
 mod manager;
 
 use std::time::Duration;
