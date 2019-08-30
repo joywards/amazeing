@@ -26,7 +26,7 @@ fn copy_region(src: &Layer, dst: &mut Layer, region: &Region) {
         .chain(region.boundary())
     {
         if src.has(cell) {
-            dst.add(cell);
+            assert!(dst.has(cell));
         }
     }
     for &cell in region.cells() {
@@ -95,12 +95,9 @@ impl MazeBuilder {
         let path_to_escape = traversal::get_path_to(source_coord, escape, &info);
         let escape_dir = *path_to_escape.first().unwrap();
 
+        let mut new_layer = Layer::from_shape(&self.shape);
         let region_to_copy = visible_area().shifted_by(source_coord);
-        let mut new_layer = Layer::default();
         copy_region(&maze_layer.layer, &mut new_layer, &region_to_copy);
-        for &coord in &self.shape {
-            new_layer.add(coord);
-        }
 
         // Sometimes escape cell can be blocked out from the copied area during
         // generation. That's why we make it reachable before running generation.
@@ -127,10 +124,7 @@ impl MazeBuilder {
     ) -> usize {
         use std::iter::once;
 
-        let mut layer = Layer::default();
-        for &coord in &self.shape {
-            layer.add(coord);
-        }
+        let mut layer = Layer::from_shape(&self.shape);
         generate(&mut layer, once(spawn_point), &Default::default(), &mut self.rng);
 
         self.maze = Some(Maze::new(layer, spawn_point));

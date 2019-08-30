@@ -132,14 +132,13 @@ impl Maze {
 
 #[test]
 fn test_maze() {
-    let mut first: Layer = Layer::default();
-    first.add((0, 0));
+    let mut first = Layer::from_shape(
+        &(0..=3).map(|i| (0, i)).collect::<Vec<_>>()
+    );
     for i in 1..=3 {
-        first.add((0, i));
         first.join((0, i), Dir::UP);
     }
     let mut second = first.clone();
-    second.add((2, 2));
 
     let mut maze = Maze::new(first, (0, 0));
     let second_layer = maze.add_layer(second, traversal::Info::default());
@@ -155,7 +154,6 @@ fn test_maze() {
     assert_eq!(maze.try_move(Dir::DOWN), MoveResult::SUCCESS);
     assert_eq!(maze.position, (0, 2));
     assert_eq!(maze.current_layer_index, 1);
-    assert!(maze.current_layer.has((2, 2)));
 
     assert_eq!(maze.try_move(Dir::DOWN), MoveResult::FINISH);
     assert_eq!(maze.position, (0, 3));

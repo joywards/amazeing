@@ -74,19 +74,14 @@ pub fn generate<R: Rng + ?Sized>(
 fn test_generation() {
     use rand::SeedableRng;
     use rand::rngs::SmallRng;
+    use itertools::Itertools;
 
     let mut rng = SmallRng::seed_from_u64(0);
-    let mut layer = Layer::default();
-    for x in -100..100 {
-        for y in -100..100 {
-            layer.add((x, y));
-        }
-    }
+    let shape = (-100..100).cartesian_product(-100..100).collect::<Vec<_>>();
+    let mut layer = Layer::from_shape(&shape);
     generate(&mut layer, std::iter::once((0, 0)), &HashSet::new(), &mut rng);
-    for x in -100..100 {
-        for y in -100..100 {
-            assert!(layer.reachable((0, 0), (x, y)));
-        }
+    for &(x, y) in &shape {
+        assert!(layer.reachable((0, 0), (x, y)));
     }
 }
 
@@ -105,10 +100,7 @@ use crate::layer::Layer;
 fn bench_generation(b: &mut test::Bencher) {
     use crate::generation::generate;
 
-    let mut layer = Layer::default();
-    for coord in make_circle(30) {
-        layer.add(coord);
-    }
+    let mut layer = Layer::from_shape(&make_circle(30).collect::<Vec<_>>());
     let layer = &layer;
     let mut rng = SmallRng::seed_from_u64(0);
     let blocked_cells = std::collections::HashSet::new();
