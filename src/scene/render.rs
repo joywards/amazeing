@@ -13,6 +13,7 @@ use crate::render::{Canvas, Target};
 
 const CELL_SIZE: u32 = 17;
 const DEBUG: bool = false;
+const INVISIBLE_CELLS_BRIGHTNESS: u8 = 96;
 
 pub struct Renderer {
     window_size: Cell<(u32, u32)>,
@@ -49,7 +50,7 @@ impl Renderer {
                 if scene.maze.current_layer().has(cell) {
                     self.render_square(
                         canvas,
-                        cell, Color::RGB(240, 240, 240), scene.camera
+                        cell, Color::RGB(240, 240, 240), scene
                     );
                 }
             }
@@ -60,7 +61,7 @@ impl Renderer {
                 if coord_info.escapable.is_some() {
                     self.render_square(
                         canvas,
-                        coord, Color::RGB(192, 192, 192), scene.camera
+                        coord, Color::RGB(192, 192, 192), scene
                     );
                 }
             }
@@ -68,7 +69,7 @@ impl Renderer {
             for &coord in &layer_info.leaf_escapables {
                 self.render_square(
                     canvas,
-                    coord, Color::RGB(220, 192, 192), scene.camera
+                    coord, Color::RGB(220, 192, 192), scene
                 );
             }
         }
@@ -76,7 +77,7 @@ impl Renderer {
         // Current position
         self.render_square(
             canvas,
-            scene.maze.position(), Color::RGBA(128, 128, 128, 255), scene.camera
+            scene.maze.position(), Color::RGBA(128, 128, 255, 255), scene
         );
 
         // Finish
@@ -88,7 +89,7 @@ impl Renderer {
             {
                 self.render_square(
                     canvas,
-                    finish_position, Color::RGBA(0, 192, 0, 255), scene.camera
+                    finish_position, Color::RGB(0, 192, 0), scene
                 );
             }
         }
@@ -122,9 +123,11 @@ impl Renderer {
             visible_area().shifted_by(scene.maze.position()).cells().iter().cloned().collect()
         };
 
-        canvas.set_draw_color(Color::RGB(255, 255, 255));
         for cell in cells_iter {
             if layer.has(cell) {
+                let br = scene.visual_info.get(&cell).map(|info| info.brightness)
+                    .unwrap_or(INVISIBLE_CELLS_BRIGHTNESS);
+                canvas.set_draw_color(Color::RGB(br, br, br));
                 let view_coord = self.to_view(cell, scene.camera);
 
                 self.fill_rect(canvas, view_coord.0, view_coord.1, CELL_SIZE - 1, CELL_SIZE - 1);
@@ -138,7 +141,18 @@ impl Renderer {
         }
     }
 
-    fn render_square(&self, canvas: &mut Canvas, coord: (i32, i32), color: Color, camera: Camera) {
+    fn render_square(&self, canvas: &mut Canvas, coord: (i32, i32), color: Color, scene: &Scene) {
+        let camera = scene.camera;
+        let brightness = f32::from(
+            scene.visual_info.get(&coord).map(|info| info.brightness)
+                .unwrap_or(INVISIBLE_CELLS_BRIGHTNESS)
+        ) / 255.0;
+        let color = Color::RGBA(
+            (f32::from(color.r) * brightness) as u8,
+            (f32::from(color.g) * brightness) as u8,
+            (f32::from(color.b) * brightness) as u8,
+            255
+        );
         canvas.set_draw_color(color);
         let view_coord = self.to_view(coord, camera);
         self.fill_rect(canvas, view_coord.0, view_coord.1, CELL_SIZE - 1, CELL_SIZE - 1);

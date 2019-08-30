@@ -50,7 +50,7 @@ impl Screen for SceneScreen {
             Action::Exit => Transition::Goto(Box::new(MenuScreen::new())),
 
             Action::Move(dir) => {
-                if self.scene.maze.try_move(dir) == MoveResult::FINISH {
+                if self.scene.try_move(dir) == MoveResult::FINISH {
                     level_completion_observer().lock().unwrap()
                         .notify(LevelCompleted {
                             level: self.scene.level_id
