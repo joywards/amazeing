@@ -1,4 +1,4 @@
-use crate::utils::dsu::DSU;
+use disjoint_sets::UnionFind;
 use crate::geometry::Dir;
 
 #[derive(Default, Clone, Copy)]
@@ -24,7 +24,8 @@ pub struct Layer {
     min_i: i32,
     min_j: i32,
     stride: i32,
-    dsu: DSU<(i32, i32)>,
+    height: i32,
+    dsu: UnionFind<usize>,
 }
 
 impl Layer {
@@ -35,12 +36,13 @@ impl Layer {
         let &(max_i, _j) = coords.iter().max_by_key(|(i, _j)| i).unwrap();
         let &(_i, max_j) = coords.iter().max_by_key(|(_i, j)| j).unwrap();
         let stride = max_j - min_j + 1;
-        let len = ((max_i - min_i + 1) * stride) as usize;
+        let height = max_i - min_i + 1;
+        let len = (height * stride) as usize;
 
         let mut result = Self {
             cells: vec![None; len],
-            min_i, min_j, stride,
-            dsu: DSU::default()
+            min_i, min_j, stride, height,
+            dsu: UnionFind::new(len),
         };
         for &coord in coords {
             let index = result.index(coord).unwrap();
@@ -50,10 +52,12 @@ impl Layer {
     }
 
     fn index(&self, (i, j): (i32, i32)) -> Option<usize> {
-        if i < self.min_i || j < self.min_j || j - self.min_j >= self.stride {
+        let i = i - self.min_i;
+        let j = j - self.min_j;
+        if i < 0 || j < 0 || j >= self.stride || i >= self.height {
             None
         } else {
-            Some(((i - self.min_i) * self.stride + (j - self.min_j)) as usize)
+            Some((i * self.stride + j) as usize)
         }
     }
 
@@ -97,17 +101,20 @@ impl Layer {
             Dir::RIGHT | Dir::DOWN => {
                 let to = from + dir;
                 const MSG: &str = "Trying to join with cell outside the layer";
-                assert!(self.has(to), MSG);
 
                 let cell: &mut Cell = self.get_mut(from).expect(MSG);
                 *cell.get_passage_mut(dir) = true;
-                self.dsu.union(from, to);
+                self.dsu.union(self.index(from).unwrap(), self.index(to).expect(MSG));
             }
         }
     }
 
     pub fn reachable(&self, from: (i32, i32), to: (i32, i32)) -> bool {
-        self.dsu.equiv(from, to)
+        if let (Some(from_i), Some(to_i)) = (self.index(from), self.index(to)) {
+            self.dsu.equiv(from_i, to_i)
+        } else {
+            false
+        }
     }
 }
 
