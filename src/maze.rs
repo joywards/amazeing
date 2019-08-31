@@ -138,7 +138,7 @@ fn test_maze() {
     for i in 1..=3 {
         first.join((0, i), Dir::UP);
     }
-    let mut second = first.clone();
+    let second = first.clone();
 
     let mut maze = Maze::new(first, (0, 0));
     let second_layer = maze.add_layer(second, traversal::Info::default());

@@ -211,17 +211,14 @@ extern crate test;
 
 #[bench]
 fn bench_add_layer(b: &mut test::Bencher) {
-    use std::collections::HashSet;
     use crate::build::{MazeBuilder, make_circle};
-    use crate::region::Region;
 
-    let shape = make_circle(30).collect();
+    let shape = make_circle(15).collect();
     let mut builder = MazeBuilder::new(0, shape);
-    builder.set_visible_area(Region::from(make_circle(12).collect::<HashSet<_>>()));
     builder.generate_first_layer((0, 0));
 
     b.iter(|| {
-        builder.add_layer_from_deepest_point(0);
+        builder.add_layer_from_deepest_point(0).unwrap();
     });
 }
 

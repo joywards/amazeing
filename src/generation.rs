@@ -100,8 +100,7 @@ use crate::layer::Layer;
 fn bench_generation(b: &mut test::Bencher) {
     use crate::generation::generate;
 
-    let mut layer = Layer::from_shape(&make_circle(30).collect::<Vec<_>>());
-    let layer = &layer;
+    let layer = Layer::from_shape(&make_circle(30).collect::<Vec<_>>());
     let mut rng = SmallRng::seed_from_u64(0);
     let blocked_cells = std::collections::HashSet::new();
 
