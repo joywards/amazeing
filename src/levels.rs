@@ -2,9 +2,20 @@ use crate::build::{MazeBuilder, make_circle, GenerationError};
 use crate::maze::Maze;
 
 
-pub trait LevelGenerator: std::marker::Send {
+pub trait LevelGenerator: Send + Sync {
     fn generate(&self, stage: u64) -> Result<Maze, GenerationError>;
     fn id(&self) -> &'static str;
+}
+
+
+lazy_static! {
+    pub static ref GENERATORS: [&'static dyn LevelGenerator; 3] = {
+        [
+            &Plain(),
+            &Double(),
+            &Debug(),
+        ]
+    };
 }
 
 

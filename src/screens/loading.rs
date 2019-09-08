@@ -5,7 +5,6 @@ use crate::screens::{scene::SceneScreen, menu::MenuScreen};
 use crate::maze::Maze;
 use crate::build::GenerationError;
 use crate::levels::LevelGenerator;
-use crate::utils::persistent_state::get_persistent_state;
 use crate::observers::{level_completion_observer, LevelCompleted};
 
 pub struct LoadingScreen {
@@ -15,9 +14,7 @@ pub struct LoadingScreen {
 }
 
 impl LoadingScreen {
-    pub fn new(generator: Box<dyn LevelGenerator>) -> Self {
-        let stage = get_persistent_state().lock().unwrap()
-            .progress.completed_stages(generator.id());
+    pub fn new(generator: &'static dyn LevelGenerator, stage: u64) -> Self {
         let level_id = generator.id();
 
         let (sender, receiver) = channel();
