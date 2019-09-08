@@ -10,11 +10,11 @@ use crate::observers::{level_completion_observer, LevelCompleted};
 pub struct LoadingScreen {
     receiver: Receiver<Result<Maze, GenerationError>>,
     level_id: &'static str,
-    stage: u64,
+    stage: u32,
 }
 
 impl LoadingScreen {
-    pub fn new(generator: &'static dyn LevelGenerator, stage: u64) -> Self {
+    pub fn new(generator: &'static dyn LevelGenerator, stage: u32) -> Self {
         let level_id = generator.id();
 
         let (sender, receiver) = channel();

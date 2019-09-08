@@ -75,8 +75,8 @@ impl Screen for MenuScreen {
             Action::Nothing => Transition::Stay,
             Action::StartLevel => {
                 let (generator, completed) = self.levels[self.cursor.0 as usize];
-                let stage = self.cursor.1 as u64;
-                assert!(stage <= completed as u64);
+                let stage = self.cursor.1;
+                assert!(stage <= completed);
                 Transition::Goto(Box::new(LoadingScreen::new(generator, stage)))
             },
             Action::MoveCursor(dir) => {

@@ -66,10 +66,10 @@ pub struct MazeBuilder {
 }
 
 impl MazeBuilder {
-    pub fn new(seed: u64, shape: Vec<(i32, i32)>) -> MazeBuilder {
+    pub fn new(seed: u32, shape: Vec<(i32, i32)>) -> MazeBuilder {
         MazeBuilder{
             maze: None, shape,
-            rng: SmallRng::seed_from_u64(seed)
+            rng: SmallRng::seed_from_u64(u64::from(seed))
         }
     }
 
