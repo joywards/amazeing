@@ -2,6 +2,9 @@
 
 extern crate sdl2;
 extern crate itertools;
+extern crate dirs;
+extern crate serde;
+extern crate ron;
 #[macro_use]
 extern crate lazy_static;
 
