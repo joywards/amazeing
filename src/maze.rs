@@ -1,4 +1,3 @@
-use std::sync::Mutex;
 use std::collections::HashMap;
 
 use crate::layer::Layer;
@@ -17,12 +16,11 @@ pub struct MazeLayer {
 }
 
 pub struct Maze {
-    layers: Mutex<Vec<MazeLayer>>,
+    layers: Vec<MazeLayer>,
     position: (i32, i32),
     current_layer_index: usize,
     finish: (i32, i32, usize),
-    // A copy of current layer is made for avoiding
-    // thread synchronization during rendering.
+    // A copy of the current layer is made for speeding up rendering.
     current_layer: Layer,
 }
 
@@ -36,11 +34,11 @@ pub enum MoveResult{
 impl Maze {
     pub fn new(layer: Layer, spawn_point: (i32, i32)) -> Maze {
         Maze{
-            layers: Mutex::new(vec![MazeLayer{
+            layers: vec![MazeLayer{
                 layer: layer.clone(),
                 transitions: HashMap::new(),
                 info: traversal::dfs(&layer, spawn_point, None),
-            }]),
+            }],
             position: spawn_point,
             current_layer_index: 0,
             finish: (0, 0, 0),
@@ -49,10 +47,9 @@ impl Maze {
     }
 
     fn change_layer_if_necessary(&mut self) {
-        let layers = self.layers.lock().unwrap();
-        let current_layer = &layers[self.current_layer_index];
+        let current_layer = &self.layers[self.current_layer_index];
         if let Some(transition) = current_layer.transitions.get(&self.position) {
-            self.current_layer = layers[transition.dest_layer].layer.clone();
+            self.current_layer = self.layers[transition.dest_layer].layer.clone();
             self.current_layer_index = transition.dest_layer;
         }
     }
@@ -83,13 +80,12 @@ impl Maze {
         self.position
     }
 
-    pub fn clone_current_layer_info(&self) -> traversal::Info {
-        self.layers.lock().unwrap()[self.current_layer_index].info.clone()
+    pub fn current_layer_info(&self) -> &traversal::Info {
+        &self.layers[self.current_layer_index].info
     }
 
-    // Uses mut reference because this way no runtime synchronization is needed.
-    pub fn maze_layer(&mut self, i: usize) -> &MazeLayer {
-        &self.layers.get_mut().unwrap()[i]
+    pub fn maze_layer(&self, i: usize) -> &MazeLayer {
+        &self.layers[i]
     }
 
     pub fn set_finish(&mut self, layer_index: usize, pos: (i32, i32)) {
@@ -107,24 +103,21 @@ impl Maze {
         )
     }
 
-    pub fn add_layer(&self, layer: Layer, info: traversal::Info) -> usize {
-        let mut layers = self.layers.lock().unwrap();
-        layers.push(MazeLayer{
+    pub fn add_layer(&mut self, layer: Layer, info: traversal::Info) -> usize {
+        self.layers.push(MazeLayer{
             layer,
             transitions: HashMap::new(),
             info
         });
-        layers.len() - 1
+        self.layers.len() - 1
     }
 
-    pub fn add_transition(&self, coord: (i32, i32), dir: Dir, from_index: usize, to_index: usize) {
-        let mut layers = self.layers.lock().unwrap();
-
-        let from = &mut layers[from_index];
+    pub fn add_transition(&mut self, coord: (i32, i32), dir: Dir, from_index: usize, to_index: usize) {
+        let from = &mut self.layers[from_index];
         assert!(from.layer.passable(coord, dir));
         from.transitions.insert(coord + dir, Transition{dest_layer: to_index});
 
-        let to = &mut layers[to_index];
+        let to = &mut self.layers[to_index];
         assert!(to.layer.passable(coord, dir));
         to.transitions.insert(coord, Transition{dest_layer: from_index});
     }

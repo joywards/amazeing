@@ -55,7 +55,7 @@ impl Renderer {
                 }
             }
 
-            let layer_info = scene.maze.clone_current_layer_info();
+            let layer_info = scene.maze.current_layer_info();
 
             for (&coord, coord_info) in layer_info.coords.iter() {
                 if coord_info.escapable.is_some() {
