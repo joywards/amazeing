@@ -2,12 +2,13 @@ use disjoint_sets::UnionFind;
 use crate::geometry::Dir;
 
 #[derive(Default, Clone, Copy)]
-struct Cell {
+struct Cell<Info> {
     has_passage_right: bool,
     has_passage_down: bool,
+    info: Info,
 }
 
-impl Cell {
+impl<Info> Cell<Info> {
     fn get_passage_mut(&mut self, dir: Dir) -> &mut bool {
         match dir {
             Dir::RIGHT => &mut self.has_passage_right,
@@ -19,8 +20,8 @@ impl Cell {
 }
 
 #[derive(Clone)]
-pub struct Layer {
-    cells: Vec<Option<Cell>>,
+pub struct Layer<CellInfo: Default> {
+    cells: Vec<Option<Cell<CellInfo>>>,
     min_i: i32,
     min_j: i32,
     stride: i32,
@@ -28,7 +29,7 @@ pub struct Layer {
     dsu: UnionFind<usize>,
 }
 
-impl Layer {
+impl<CellInfo: Default> Layer<CellInfo> {
     pub fn from_shape(coords: &[(i32, i32)]) -> Self {
         assert!(!coords.is_empty());
         let &(min_i, _j) = coords.iter().min_by_key(|(i, _j)| i).unwrap();
@@ -40,13 +41,13 @@ impl Layer {
         let len = (height * stride) as usize;
 
         let mut result = Self {
-            cells: vec![None; len],
+            cells: std::iter::repeat_with(|| None).take(len).collect(),
             min_i, min_j, stride, height,
             dsu: UnionFind::new(len),
         };
         for &coord in coords {
             let index = result.index(coord).unwrap();
-            result.cells[index] = Some(Cell::default());
+            result.cells[index] = Some(Default::default());
         }
         result
     }
@@ -61,12 +62,12 @@ impl Layer {
         }
     }
 
-    fn get(&self, coord: (i32, i32)) -> Option<&Cell> {
+    fn get(&self, coord: (i32, i32)) -> Option<&Cell<CellInfo>> {
         let index = self.index(coord)?;
         self.cells.get(index).and_then(|x| x.as_ref())
     }
 
-    fn get_mut(&mut self, coord: (i32, i32)) -> Option<&mut Cell> {
+    fn get_mut(&mut self, coord: (i32, i32)) -> Option<&mut Cell<CellInfo>> {
         let index = self.index(coord)?;
         self.cells.get_mut(index).and_then(|x| x.as_mut())
     }
@@ -102,7 +103,7 @@ impl Layer {
                 let to = from + dir;
                 const MSG: &str = "Trying to join with cell outside the layer";
 
-                let cell: &mut Cell = self.get_mut(from).expect(MSG);
+                let cell = self.get_mut(from).expect(MSG);
                 *cell.get_passage_mut(dir) = true;
                 self.dsu.union(self.index(from).unwrap(), self.index(to).expect(MSG));
             }
@@ -124,7 +125,7 @@ fn test_layer() {
     let shape = [
         (0, 0), (0, 1), (1, 0), (-1, -2), (-1, 0)
     ];
-    let mut layer = Layer::from_shape(&shape);
+    let mut layer = Layer::<()>::from_shape(&shape);
     for &cell in &shape {
         assert!(layer.has(cell));
     }

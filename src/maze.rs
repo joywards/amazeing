@@ -10,7 +10,7 @@ struct Transition {
 }
 
 pub struct MazeLayer {
-    pub layer: Layer,
+    pub layer: Layer<()>,
     transitions: HashMap<(i32, i32), Transition>,
     pub info: traversal::Info,
 }
@@ -21,7 +21,7 @@ pub struct Maze {
     current_layer_index: usize,
     finish: (i32, i32, usize),
     // A copy of the current layer is made for speeding up rendering.
-    current_layer: Layer,
+    current_layer: Layer<()>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -32,7 +32,7 @@ pub enum MoveResult{
 }
 
 impl Maze {
-    pub fn new(layer: Layer, spawn_point: (i32, i32)) -> Maze {
+    pub fn new(layer: Layer<()>, spawn_point: (i32, i32)) -> Maze {
         Maze{
             layers: vec![MazeLayer{
                 layer: layer.clone(),
@@ -68,7 +68,7 @@ impl Maze {
         }
     }
 
-    pub fn current_layer(&self) -> &Layer {
+    pub fn current_layer(&self) -> &Layer<()> {
         &self.current_layer
     }
 
@@ -103,7 +103,7 @@ impl Maze {
         )
     }
 
-    pub fn add_layer(&mut self, layer: Layer, info: traversal::Info) -> usize {
+    pub fn add_layer(&mut self, layer: Layer<()>, info: traversal::Info) -> usize {
         self.layers.push(MazeLayer{
             layer,
             transitions: HashMap::new(),
@@ -125,7 +125,7 @@ impl Maze {
 
 #[test]
 fn test_maze() {
-    let mut first = Layer::from_shape(
+    let mut first = Layer::<()>::from_shape(
         &(0..=3).map(|i| (0, i)).collect::<Vec<_>>()
     );
     for i in 1..=3 {

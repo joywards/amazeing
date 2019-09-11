@@ -34,7 +34,7 @@ pub struct Info {
     pub leaf_escapables: Vec<(i32, i32)>,
 }
 
-fn escapable(c: (i32, i32), from: (i32, i32), layer: &Layer) -> bool {
+fn escapable<I: Default>(c: (i32, i32), from: (i32, i32), layer: &Layer<I>) -> bool {
     let visible_area = visible_area().shifted_by(from);
     assert!(layer.has(c));
 
@@ -56,8 +56,8 @@ fn escapable(c: (i32, i32), from: (i32, i32), layer: &Layer) -> bool {
     true
 }
 
-pub fn dfs(
-    layer: &Layer,
+pub fn dfs<I: Default>(
+    layer: &Layer<I>,
     start: (i32, i32), from: Option<Dir>
 ) -> Info {
     let mut info = Info::default();
@@ -80,8 +80,8 @@ pub fn dfs(
     info
 }
 
-fn dfs_impl(
-    layer: &Layer,
+fn dfs_impl<I: Default>(
+    layer: &Layer<I>,
     coord: (i32, i32), from: Dir,
     info: &mut Info,
     visible_trace: &mut HashSet<(i32, i32)>,

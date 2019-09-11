@@ -21,7 +21,7 @@ pub fn make_circle(radius: i32) -> impl Iterator<Item=(i32, i32)> {
         })
 }
 
-fn copy_region(src: &Layer, dst: &mut Layer, region: &Region) {
+fn copy_region<I: Default>(src: &Layer<I>, dst: &mut Layer<I>, region: &Region) {
     for &cell in region.cells().iter()
         .chain(region.boundary())
     {
@@ -38,7 +38,7 @@ fn copy_region(src: &Layer, dst: &mut Layer, region: &Region) {
     }
 }
 
-fn carve_path(layer: &mut Layer, start: (i32, i32), path: &[Dir]) {
+fn carve_path<I: Default>(layer: &mut Layer<I>, start: (i32, i32), path: &[Dir]) {
     let mut c = start;
     for &dir in path {
         layer.join(c, dir);

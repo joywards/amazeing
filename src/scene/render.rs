@@ -5,7 +5,6 @@ use sdl2::pixels::Color;
 use sdl2::surface::Surface;
 use sdl2::rect::Rect;
 
-use crate::layer::Layer;
 use crate::geometry::Dir;
 use crate::visible_area::{visibility_radius, visible_area};
 use crate::scene::{Scene, Camera};
@@ -113,7 +112,7 @@ impl Renderer {
     }
 
     fn render_current_layer(&self, canvas: &mut Canvas, scene: &Scene) {
-        let layer: &Layer = scene.maze.current_layer();
+        let layer = scene.maze.current_layer();
 
         let cells_iter: Vec<_> = if DEBUG {
             const RENDER_SIZE: i32 = 20;

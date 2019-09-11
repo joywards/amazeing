@@ -8,7 +8,7 @@ use rand::seq::SliceRandom;
 
 const CHANCE_TO_BE_NEXT: f64 = 0.07;
 
-fn possible_moves(layer: &Layer, from: (i32, i32), blocked_cells: &HashSet<(i32, i32)>) -> Vec<Dir> {
+fn possible_moves<I: Default>(layer: &Layer<I>, from: (i32, i32), blocked_cells: &HashSet<(i32, i32)>) -> Vec<Dir> {
     if !layer.has(from) {
         return vec![];
     }
@@ -26,8 +26,8 @@ fn possible_moves(layer: &Layer, from: (i32, i32), blocked_cells: &HashSet<(i32,
     result
 }
 
-fn expand_randomly<R>(
-    layer: &mut Layer, from: (i32, i32), blocked_cells: &HashSet<(i32, i32)>,
+fn expand_randomly<R, I: Default>(
+    layer: &mut Layer<I>, from: (i32, i32), blocked_cells: &HashSet<(i32, i32)>,
     rng: &mut R
 ) -> Option<Dir>
     where R: Rng + ?Sized
@@ -40,8 +40,8 @@ fn expand_randomly<R>(
 }
 
 // There is probably space for optimization here.
-pub fn generate<R: Rng + ?Sized>(
-    layer: &mut Layer,
+pub fn generate<R: Rng + ?Sized, I: Default>(
+    layer: &mut Layer<I>,
     spawn_points: impl Iterator<Item=(i32, i32)>,
     blocked_cells: &HashSet<(i32, i32)>,
     rng: &mut R
@@ -78,7 +78,7 @@ fn test_generation() {
 
     let mut rng = SmallRng::seed_from_u64(0);
     let shape = (-100..100).cartesian_product(-100..100).collect::<Vec<_>>();
-    let mut layer = Layer::from_shape(&shape);
+    let mut layer = Layer::<()>::from_shape(&shape);
     generate(&mut layer, std::iter::once((0, 0)), &HashSet::new(), &mut rng);
     for &(x, y) in &shape {
         assert!(layer.reachable((0, 0), (x, y)));
@@ -100,7 +100,7 @@ use crate::layer::Layer;
 fn bench_generation(b: &mut test::Bencher) {
     use crate::generation::generate;
 
-    let layer = Layer::from_shape(&make_circle(30).collect::<Vec<_>>());
+    let layer = Layer::<()>::from_shape(&make_circle(30).collect::<Vec<_>>());
     let mut rng = SmallRng::seed_from_u64(0);
     let blocked_cells = std::collections::HashSet::new();
 
