@@ -42,7 +42,7 @@ impl LevelGenerator for Double {
         let shape = make_circle(radius).collect();
         let mut builder = MazeBuilder::new(stage, shape);
         let first = builder.generate_first_layer((0, 0));
-        builder.add_layer_from_deepest_point(first).unwrap();
+        builder.add_layer_from_deepest_point(first)?;
         Ok(builder.into_maze())
     }
 
@@ -54,15 +54,19 @@ pub struct Debug();
 
 impl LevelGenerator for Debug {
     fn generate(&self, stage: u32) -> Result<Maze, GenerationError> {
-        let radius = 17 + stage as i32;
+        let radius = 12 + stage as i32;
         let shape = make_circle(radius).collect();
         let mut builder = MazeBuilder::new(stage, shape);
 
         let first = builder.generate_first_layer((0, 0));
-        let (_, mut last, _) = builder.fork_to_three_layers(first)?;
+        let (mut left, center, mut right) = builder.fork_to_three_layers(first)?;
         for _ in 0..6 {
-            last = builder.add_layer_from_deepest_point(last)?;
+            left = builder.add_layer_from_deepest_point(left)?;
         }
+        for _ in 0..6 {
+            right = builder.add_layer_from_deepest_point(right)?;
+        }
+        builder.add_layer_from_deepest_point(center)?;
         Ok(builder.into_maze())
     }
 
