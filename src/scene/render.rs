@@ -9,6 +9,7 @@ use crate::geometry::Dir;
 use crate::visible_area::{visibility_radius, visible_area};
 use crate::scene::{Scene, Camera};
 use crate::render::{Canvas, Target};
+use crate::maze::{CellInfo};
 
 const CELL_SIZE: u32 = 17;
 const DEBUG: bool = false;
@@ -79,20 +80,6 @@ impl Renderer {
             scene.maze.position(), Color::RGBA(128, 128, 255, 255), scene
         );
 
-        // Finish
-        let finish = scene.maze.finish();
-        if finish.2 == scene.maze.current_layer_index() {
-            let finish_position = (finish.0, finish.1);
-            let visible_area = visible_area().shifted_by(scene.maze.position());
-            if visible_area.cells().contains(&(finish.0, finish.1))
-            {
-                self.render_square(
-                    canvas,
-                    finish_position, Color::RGB(0, 192, 0), scene
-                );
-            }
-        }
-
         if !DEBUG {
             let mut light_center = self.to_view(scene.maze.position(), scene.camera);
             light_center.0 += CELL_SIZE as i32 / 2;
@@ -126,7 +113,10 @@ impl Renderer {
             if layer.has(cell) {
                 let br = scene.visual_info.get(&cell).map(|info| info.brightness)
                     .unwrap_or(INVISIBLE_CELLS_BRIGHTNESS);
-                canvas.set_draw_color(Color::RGB(br, br, br));
+                canvas.set_draw_color(match layer.get_info(cell).unwrap() {
+                    CellInfo::Empty => Color::RGB(br, br, br),
+                    CellInfo::Finish => Color::RGB(0, (br as f32 * 0.75) as u8, 0),
+                });
                 let view_coord = self.to_view(cell, scene.camera);
 
                 self.fill_rect(canvas, view_coord.0, view_coord.1, CELL_SIZE - 1, CELL_SIZE - 1);

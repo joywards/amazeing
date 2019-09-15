@@ -129,8 +129,6 @@ impl MazeBuilder {
 
         self.maze = Some(Maze::new(layer, spawn_point));
 
-        self.set_finish_at_deepest_point(0);
-
         0
     }
 
@@ -147,7 +145,6 @@ impl MazeBuilder {
             src_layer,
             deepest
         );
-        self.set_finish_at_deepest_point(new_layer_index);
 
         Ok(new_layer_index)
     }
@@ -192,15 +189,15 @@ impl MazeBuilder {
 
     pub fn set_finish_at_deepest_point(
         &mut self,
-        src_layer: usize,
+        layer_index: usize,
     ) {
-        let info = self.traversal_info(src_layer);
+        let info = self.traversal_info(layer_index);
         let (&deepest, _) = info.coords.iter().max_by_key(
             |(_coord, info)| info.depth
         ).expect("layer has no reachable cells");
 
         let maze = self.maze.as_mut().unwrap();
-        maze.set_finish(src_layer, deepest);
+        maze.set_finish((deepest.0, deepest.1, layer_index));
     }
 }
 

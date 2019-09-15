@@ -27,6 +27,7 @@ impl LevelGenerator for Plain {
         let shape = make_circle(radius).collect();
         let mut builder = MazeBuilder::new(stage, shape);
         builder.generate_first_layer((0, 0));
+        builder.set_finish_at_deepest_point(0);
         Ok(builder.into_maze())
     }
 
@@ -42,7 +43,8 @@ impl LevelGenerator for Double {
         let shape = make_circle(radius).collect();
         let mut builder = MazeBuilder::new(stage, shape);
         let first = builder.generate_first_layer((0, 0));
-        builder.add_layer_from_deepest_point(first)?;
+        let last = builder.add_layer_from_deepest_point(first)?;
+        builder.set_finish_at_deepest_point(last);
         Ok(builder.into_maze())
     }
 
@@ -67,6 +69,7 @@ impl LevelGenerator for Debug {
             right = builder.add_layer_from_deepest_point(right)?;
         }
         builder.add_layer_from_deepest_point(center)?;
+        builder.set_finish_at_deepest_point(0);
         Ok(builder.into_maze())
     }
 

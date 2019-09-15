@@ -5,9 +5,10 @@ use crate::geometry::Dir;
 use crate::traversal;
 
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum CellInfo {
     Empty,
+    Finish,
 }
 
 #[derive(Copy, Clone)]
@@ -44,7 +45,6 @@ pub struct Maze {
     layers: Vec<MazeLayer>,
     position: (i32, i32),
     current_layer_index: usize,
-    finish: (i32, i32, usize),
     // A copy of the current layer is made for speeding up rendering.
     current_layer: Layer<CellInfo>,
 }
@@ -80,7 +80,6 @@ impl Maze {
             }],
             position: spawn_point,
             current_layer_index: 0,
-            finish: (0, 0, 0),
             current_layer: Default::default()
         };
         result.current_layer = result.resolve_references(&result.layers[0].layer);
@@ -119,10 +118,6 @@ impl Maze {
         &self.current_layer
     }
 
-    pub fn current_layer_index(&self) -> usize {
-        self.current_layer_index
-    }
-
     pub fn position(&self) -> (i32, i32) {
         self.position
     }
@@ -135,19 +130,12 @@ impl Maze {
         &self.layers[i]
     }
 
-    pub fn set_finish(&mut self, layer_index: usize, pos: (i32, i32)) {
-        self.finish = (pos.0, pos.1, layer_index);
-    }
-
-    pub fn finish(&self) -> (i32, i32, usize) {
-        self.finish
+    pub fn set_finish(&mut self, pos: (i32, i32, usize)) {
+        self.modify_cell_info(pos, |info| *info = CellInfo::Finish)
     }
 
     fn is_at_finish(&self) -> bool {
-        (
-            self.current_layer_index == self.finish.2
-            && self.position == (self.finish.0, self.finish.1)
-        )
+        *self.current_layer().get_info(self.position).unwrap() == CellInfo::Finish
     }
 
     fn mut_lazy_cell_info(&mut self, (x, y, z): (i32, i32, usize)) -> Option<&mut LazyCellInfo> {
