@@ -90,9 +90,15 @@ impl Maze {
     fn change_layer_if_necessary(&mut self) {
         let current_layer = &self.layers[self.current_layer_index];
         if let Some(transition) = current_layer.transitions.get(&self.position) {
-            self.current_layer = self.resolve_references(&self.layers[transition.dest_layer].layer);
             self.current_layer_index = transition.dest_layer;
+            self.update_current_level();
         }
+    }
+
+    fn update_current_level(&mut self) {
+        self.current_layer = self.resolve_references(
+            &self.layers[self.current_layer_index].layer
+        );
     }
 
     pub fn try_move(&mut self, dir: Dir) -> MoveResult {
@@ -148,25 +154,20 @@ impl Maze {
         self.layers.get_mut(z)?.layer.get_info_mut((x, y))
     }
 
-    pub fn mut_cell_info(&mut self, (x, y, z): (i32, i32, usize)) -> Option<&mut CellInfo> {
-        match *self.mut_lazy_cell_info((x, y, z))? {
-            LazyCellInfo::Some(_) => {
-                // Can not just return inner value here because `*self` would
-                // be borrowed until the end of the `mut_cell_info` function, but
-                // it needs to be borrowed in the next `match` handle.
-                // See explanation at https://github.com/rust-lang/rust/issues/21906#issuecomment-303258612
-                match self.mut_lazy_cell_info((x, y, z)).unwrap() {
-                    LazyCellInfo::Some(ref mut info) => Some(info),
-                    _ => panic!(),
-                }
-            },
+    pub fn modify_cell_info(
+        &mut self, (x, y, z): (i32, i32, usize),
+        modify: impl FnOnce(&mut CellInfo)
+    ) {
+        match *self.mut_lazy_cell_info((x, y, z)).unwrap() {
+            LazyCellInfo::Some(ref mut info) => modify(info),
             LazyCellInfo::Ref(to) => {
-                match self.mut_lazy_cell_info((x, y, to))? {
-                    LazyCellInfo::Some(ref mut info) => Some(info),
+                match self.mut_lazy_cell_info((x, y, to)).unwrap() {
+                    LazyCellInfo::Some(ref mut info) => modify(info),
                     LazyCellInfo::Ref(_) => panic!("LazyCellInfo::Ref leads to another Ref")
                 }
             }
         }
+        self.update_current_level();
     }
 
     pub fn add_layer(&mut self, layer: Layer<LazyCellInfo>, info: traversal::Info) -> usize {
