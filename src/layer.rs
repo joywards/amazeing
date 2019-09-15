@@ -1,6 +1,7 @@
 use disjoint_sets::UnionFind;
 use crate::geometry::Dir;
 
+
 #[derive(Default, Clone, Copy)]
 struct Cell<Info> {
     has_passage_right: bool,
@@ -18,6 +19,7 @@ impl<Info> Cell<Info> {
         }
     }
 }
+
 
 #[derive(Clone)]
 pub struct Layer<CellInfo: Default> {
@@ -62,6 +64,13 @@ impl<CellInfo: Default> Layer<CellInfo> {
         }
     }
 
+    fn pos_from_index(&self, index: usize) -> (i32, i32) {
+        (
+            index as i32 / self.stride + self.min_i,
+            index as i32 % self.stride + self.min_j
+        )
+    }
+
     fn get(&self, coord: (i32, i32)) -> Option<&Cell<CellInfo>> {
         let index = self.index(coord)?;
         self.cells.get(index).and_then(|x| x.as_ref())
@@ -70,6 +79,14 @@ impl<CellInfo: Default> Layer<CellInfo> {
     fn get_mut(&mut self, coord: (i32, i32)) -> Option<&mut Cell<CellInfo>> {
         let index = self.index(coord)?;
         self.cells.get_mut(index).and_then(|x| x.as_mut())
+    }
+
+    pub fn get_info(&self, coord: (i32, i32)) -> Option<&CellInfo> {
+        self.get(coord).map(|cell| &cell.info)
+    }
+
+    pub fn get_info_mut(&mut self, coord: (i32, i32)) -> Option<&mut CellInfo> {
+        self.get_mut(coord).map(|cell| &mut cell.info)
     }
 
     pub fn has(&self, coord: (i32, i32)) -> bool {
@@ -117,20 +134,54 @@ impl<CellInfo: Default> Layer<CellInfo> {
             false
         }
     }
+
+    pub fn map<ResultInfo: Default>(
+        &self,
+        f: impl Fn(&CellInfo, (i32, i32)) -> ResultInfo
+    ) -> Layer<ResultInfo> {
+        Layer {
+            cells: self.cells.iter().enumerate().map(|(index, opt)| opt.as_ref().map(
+                |cell| Cell{
+                    has_passage_right: cell.has_passage_right,
+                    has_passage_down: cell.has_passage_down,
+                    info: f(&cell.info, self.pos_from_index(index))
+                }
+            )).collect(),
+            min_i: self.min_i,
+            min_j: self.min_j,
+            stride: self.stride,
+            height: self.height,
+            dsu: self.dsu.clone()
+        }
+    }
+}
+
+impl<CellInfo: Default> Default for Layer<CellInfo> {
+    fn default() -> Self {
+        Self {
+            cells: Default::default(),
+            min_i: 0,
+            min_j: 0,
+            stride: 0,
+            height: 0,
+            dsu: Default::default()
+        }
+    }
 }
 
 #[test]
 fn test_layer() {
     use itertools::Itertools;
+
     let shape = [
         (0, 0), (0, 1), (1, 0), (-1, -2), (-1, 0)
     ];
     let mut layer = Layer::<()>::from_shape(&shape);
-    for &cell in &shape {
-        assert!(layer.has(cell));
+    for &coord in &shape {
+        assert!(layer.has(coord));
     }
     let count: usize = (-10..10).cartesian_product(-10..10).map(
-        |cell| if layer.has(cell) { 1 } else { 0 }
+        |coord| if layer.has(coord) { 1 } else { 0 }
     ).sum();
     assert_eq!(count, shape.len());
 
@@ -142,4 +193,18 @@ fn test_layer() {
     layer.join((0, 1), Dir::UP);
     assert!(layer.passable((0, 0), Dir::DOWN));
     assert!(layer.reachable((1, 0), (0, 1)));
+}
+
+#[test]
+fn test_indexing() {
+    use itertools::Itertools;
+
+    let shape = (-3..=3).cartesian_product(-3..=3).collect::<Vec<_>>();
+    let mut layer = Layer::<()>::from_shape(&shape);
+
+    for coord in (-10..10).cartesian_product(-10..10) {
+        if let Some(index) = layer.index(coord) {
+            assert_eq!(coord, layer.pos_from_index(index))
+        }
+    }
 }
