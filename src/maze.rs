@@ -4,13 +4,38 @@ use crate::layer::Layer;
 use crate::geometry::Dir;
 use crate::traversal;
 
+
+#[derive(Copy, Clone)]
+pub enum CellInfo {
+    Empty,
+}
+
+#[derive(Copy, Clone)]
+pub enum LazyCellInfo {
+    Some(CellInfo),
+    Ref(usize),
+}
+
+impl Default for CellInfo {
+    fn default() -> Self {
+        CellInfo::Empty
+    }
+}
+
+impl Default for LazyCellInfo {
+    fn default() -> Self {
+        LazyCellInfo::Some(Default::default())
+    }
+}
+
+
 #[derive(Clone, Copy)]
 struct Transition {
     dest_layer: usize,
 }
 
 pub struct MazeLayer {
-    pub layer: Layer<()>,
+    pub layer: Layer<LazyCellInfo>,
     transitions: HashMap<(i32, i32), Transition>,
     pub info: traversal::Info,
 }
@@ -21,7 +46,7 @@ pub struct Maze {
     current_layer_index: usize,
     finish: (i32, i32, usize),
     // A copy of the current layer is made for speeding up rendering.
-    current_layer: Layer<()>,
+    current_layer: Layer<CellInfo>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -32,8 +57,22 @@ pub enum MoveResult{
 }
 
 impl Maze {
-    pub fn new(layer: Layer<()>, spawn_point: (i32, i32)) -> Maze {
-        Maze{
+    fn resolve_references(&self, layer: &Layer<LazyCellInfo>) -> Layer<CellInfo> {
+        layer.map(|&info, coord| {
+            match info {
+                LazyCellInfo::Some(info) => info,
+                LazyCellInfo::Ref(to_layer) => {
+                    match *self.layers[to_layer].layer.get_info(coord).unwrap() {
+                        LazyCellInfo::Some(info) => info,
+                        LazyCellInfo::Ref(_) => panic!("LazyCellInfo::Ref leads to another Ref")
+                    }
+                }
+            }
+        })
+    }
+
+    pub fn new(layer: Layer<LazyCellInfo>, spawn_point: (i32, i32)) -> Maze {
+        let mut result = Maze {
             layers: vec![MazeLayer{
                 layer: layer.clone(),
                 transitions: HashMap::new(),
@@ -42,14 +81,16 @@ impl Maze {
             position: spawn_point,
             current_layer_index: 0,
             finish: (0, 0, 0),
-            current_layer: layer
-        }
+            current_layer: Default::default()
+        };
+        result.current_layer = result.resolve_references(&result.layers[0].layer);
+        result
     }
 
     fn change_layer_if_necessary(&mut self) {
         let current_layer = &self.layers[self.current_layer_index];
         if let Some(transition) = current_layer.transitions.get(&self.position) {
-            self.current_layer = self.layers[transition.dest_layer].layer.clone();
+            self.current_layer = self.resolve_references(&self.layers[transition.dest_layer].layer);
             self.current_layer_index = transition.dest_layer;
         }
     }
@@ -68,7 +109,7 @@ impl Maze {
         }
     }
 
-    pub fn current_layer(&self) -> &Layer<()> {
+    pub fn current_layer(&self) -> &Layer<CellInfo> {
         &self.current_layer
     }
 
@@ -103,7 +144,32 @@ impl Maze {
         )
     }
 
-    pub fn add_layer(&mut self, layer: Layer<()>, info: traversal::Info) -> usize {
+    fn mut_lazy_cell_info(&mut self, (x, y, z): (i32, i32, usize)) -> Option<&mut LazyCellInfo> {
+        self.layers.get_mut(z)?.layer.get_info_mut((x, y))
+    }
+
+    pub fn mut_cell_info(&mut self, (x, y, z): (i32, i32, usize)) -> Option<&mut CellInfo> {
+        match *self.mut_lazy_cell_info((x, y, z))? {
+            LazyCellInfo::Some(_) => {
+                // Can not just return inner value here because `*self` would
+                // be borrowed until the end of the `mut_cell_info` function, but
+                // it needs to be borrowed in the next `match` handle.
+                // See explanation at https://github.com/rust-lang/rust/issues/21906#issuecomment-303258612
+                match self.mut_lazy_cell_info((x, y, z)).unwrap() {
+                    LazyCellInfo::Some(ref mut info) => Some(info),
+                    _ => panic!(),
+                }
+            },
+            LazyCellInfo::Ref(to) => {
+                match self.mut_lazy_cell_info((x, y, to))? {
+                    LazyCellInfo::Some(ref mut info) => Some(info),
+                    LazyCellInfo::Ref(_) => panic!("LazyCellInfo::Ref leads to another Ref")
+                }
+            }
+        }
+    }
+
+    pub fn add_layer(&mut self, layer: Layer<LazyCellInfo>, info: traversal::Info) -> usize {
         self.layers.push(MazeLayer{
             layer,
             transitions: HashMap::new(),
@@ -125,7 +191,7 @@ impl Maze {
 
 #[test]
 fn test_maze() {
-    let mut first = Layer::<()>::from_shape(
+    let mut first = Layer::from_shape(
         &(0..=3).map(|i| (0, i)).collect::<Vec<_>>()
     );
     for i in 1..=3 {

@@ -5,7 +5,7 @@ use rand::SeedableRng;
 use crate::layer::Layer;
 use crate::utils::region::Region;
 use crate::visible_area::visible_area;
-use crate::maze::Maze;
+use crate::maze::{Maze, LazyCellInfo};
 use crate::geometry::{Dir, DIRECTIONS};
 use crate::generation::generate;
 use crate::traversal;
@@ -21,18 +21,18 @@ pub fn make_circle(radius: i32) -> impl Iterator<Item=(i32, i32)> {
         })
 }
 
-fn copy_region<I: Default>(src: &Layer<I>, dst: &mut Layer<I>, region: &Region) {
-    for &cell in region.cells().iter()
-        .chain(region.boundary())
-    {
+fn copy_region(src: &Layer<LazyCellInfo>, src_index: usize, dst: &mut Layer<LazyCellInfo>, region: &Region) {
+    for &cell in region.cells() {
         if src.has(cell) {
             assert!(dst.has(cell));
-        }
-    }
-    for &cell in region.cells() {
-        for &dir in &DIRECTIONS {
-            if src.passable(cell, dir) {
-                dst.join(cell, dir);
+            for &dir in &DIRECTIONS {
+                if src.passable(cell, dir) {
+                    dst.join(cell, dir);
+                }
+            }
+            *dst.get_info_mut(cell).unwrap() = match *src.get_info(cell).unwrap() {
+                LazyCellInfo::Some(_) => LazyCellInfo::Ref(src_index),
+                LazyCellInfo::Ref(to) => LazyCellInfo::Ref(to),
             }
         }
     }
@@ -97,7 +97,7 @@ impl MazeBuilder {
 
         let mut new_layer = Layer::from_shape(&self.shape);
         let region_to_copy = visible_area().shifted_by(source_coord);
-        copy_region(&maze_layer.layer, &mut new_layer, &region_to_copy);
+        copy_region(&maze_layer.layer, source_layer_index, &mut new_layer, &region_to_copy);
 
         // Sometimes escape cell can be blocked out from the copied area during
         // generation. That's why we make it reachable before running generation.
