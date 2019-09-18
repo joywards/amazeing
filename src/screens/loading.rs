@@ -1,16 +1,13 @@
 use std::sync::mpsc::{channel, Receiver, TryRecvError};
 
 use crate::screens::*;
-use crate::screens::{scene::SceneScreen, menu::MenuScreen};
+use crate::screens::scene::SceneScreen;
 use crate::maze::Maze;
-use crate::build::GenerationError;
 use crate::levels::LevelGenerator;
-use crate::observers::{level_completion_observer, LevelCompleted};
 
 pub struct LoadingScreen {
-    receiver: Receiver<Result<Maze, GenerationError>>,
+    receiver: Receiver<Maze>,
     level_id: &'static str,
-    stage: u32,
 }
 
 impl LoadingScreen {
@@ -22,32 +19,18 @@ impl LoadingScreen {
             sender.send(generator.generate(stage)).unwrap();
         });
 
-        Self { receiver, level_id, stage }
+        Self{receiver, level_id}
     }
 }
 
 impl Screen for LoadingScreen {
     fn update(&mut self, _elapsed: Duration) -> Transition {
         match self.receiver.try_recv() {
-            Ok(Ok(maze)) => {
+            Ok(maze) => {
                 Transition::Goto(Box::new(SceneScreen::from_maze(
                     maze, self.level_id
                 )))
             },
-            Ok(Err(_)) => {
-                eprintln!(
-                    "Could not generate level \"{}\" on stage {}.",
-                    self.level_id, self.stage
-                );
-
-                // Skip this stage in further generation attempts
-                level_completion_observer().lock().unwrap()
-                    .notify(LevelCompleted {
-                        level: self.level_id
-                    });
-
-                Transition::Goto(Box::new(MenuScreen::new()))
-            }
             Err(TryRecvError::Empty) => Transition::Stay,
             Err(TryRecvError::Disconnected) => Transition::Stay,
         }

@@ -1,6 +1,5 @@
 use itertools::Itertools;
 use rand::rngs::SmallRng;
-use rand::SeedableRng;
 
 use crate::layer::Layer;
 use crate::utils::region::Region;
@@ -58,18 +57,18 @@ impl std::fmt::Display for GenerationError {
 impl std::error::Error for GenerationError {}
 
 
-pub struct MazeBuilder {
+pub struct MazeBuilder<'r> {
     maze: Option<Maze>,
 
     shape: Vec<(i32, i32)>,
-    rng: SmallRng,
+    rng: &'r mut SmallRng,
 }
 
-impl MazeBuilder {
-    pub fn new(seed: u32, shape: Vec<(i32, i32)>) -> MazeBuilder {
+impl<'r> MazeBuilder<'r> {
+    pub fn new(shape: Vec<(i32, i32)>, rng: &mut SmallRng) -> MazeBuilder {
         MazeBuilder{
             maze: None, shape,
-            rng: SmallRng::seed_from_u64(u64::from(seed))
+            rng
         }
     }
 
