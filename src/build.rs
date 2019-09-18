@@ -1,3 +1,4 @@
+use std::collections::{HashSet, VecDeque};
 use itertools::Itertools;
 use rand::rngs::SmallRng;
 
@@ -20,7 +21,40 @@ pub fn make_circle(radius: i32) -> impl Iterator<Item=(i32, i32)> {
         })
 }
 
-fn copy_region(src: &Layer<LazyCellInfo>, src_index: usize, dst: &mut Layer<LazyCellInfo>, region: &Region) {
+fn reachable_cells(
+    layer: &Layer<LazyCellInfo>,
+    from: (i32, i32),
+    region: &Region
+) -> HashSet<(i32, i32)> {
+    assert!(layer.has(from));
+
+    let mut reached = HashSet::new();
+    reached.insert(from);
+
+    let mut queue = VecDeque::new();
+    queue.push_back(from);
+    while let Some(c) = queue.pop_front() {
+        for &dir in &DIRECTIONS {
+            let to = c + dir;
+            if region.cells().contains(&to)
+                && layer.passable(c, dir)
+                && !reached.contains(&to)
+            {
+                queue.push_back(to);
+                reached.insert(to);
+            }
+        }
+    }
+    reached
+}
+
+fn copy_region(
+    src: &Layer<LazyCellInfo>,
+    pos: (i32, i32),
+    src_index: usize,
+    dst: &mut Layer<LazyCellInfo>,
+    region: &Region
+) {
     for &cell in region.cells() {
         if src.has(cell) {
             assert!(dst.has(cell));
@@ -29,10 +63,12 @@ fn copy_region(src: &Layer<LazyCellInfo>, src_index: usize, dst: &mut Layer<Lazy
                     dst.join(cell, dir);
                 }
             }
-            *dst.get_info_mut(cell).unwrap() = match *src.get_info(cell).unwrap() {
-                LazyCellInfo::Some(_) => LazyCellInfo::Ref(src_index),
-                LazyCellInfo::Ref(to) => LazyCellInfo::Ref(to),
-            }
+        }
+    }
+    for cell in reachable_cells(src, pos, region) {
+        *dst.get_info_mut(cell).unwrap() = match *src.get_info(cell).unwrap() {
+            LazyCellInfo::Some(_) => LazyCellInfo::Ref(src_index),
+            LazyCellInfo::Ref(to) => LazyCellInfo::Ref(to),
         }
     }
 }
@@ -96,7 +132,7 @@ impl<'r> MazeBuilder<'r> {
 
         let mut new_layer = Layer::from_shape(&self.shape);
         let region_to_copy = visible_area().shifted_by(source_coord);
-        copy_region(&maze_layer.layer, source_layer_index, &mut new_layer, &region_to_copy);
+        copy_region(&maze_layer.layer, source_coord, source_layer_index, &mut new_layer, &region_to_copy);
 
         // Sometimes escape cell can be blocked out from the copied area during
         // generation. That's why we make it reachable before running generation.
