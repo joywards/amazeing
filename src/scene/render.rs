@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use std::cell::Cell;
+use std::cmp;
 
 use sdl2::pixels::Color;
 use sdl2::surface::Surface;
@@ -114,8 +115,9 @@ impl Renderer {
                 let br = scene.visual_info.get(&cell).map(|info| info.brightness)
                     .unwrap_or(INVISIBLE_CELLS_BRIGHTNESS);
                 canvas.set_draw_color(match layer.get_info(cell).unwrap() {
-                    CellInfo::Empty => Color::RGB(br, br, br),
-                    CellInfo::Finish => Color::RGB(0, (br as f32 * 0.75) as u8, 0),
+                    CellInfo::Untouched => Color::RGB(br, br, br),
+                    CellInfo::Visited => Color::RGB(cmp::min(208, br), cmp::min(208, br), br),
+                    CellInfo::Finish => Color::RGB(0, br / 4 * 3, 0),
                 });
                 let view_coord = self.to_view(cell, scene.camera);
 

@@ -7,7 +7,8 @@ use crate::traversal;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum CellInfo {
-    Empty,
+    Untouched,
+    Visited,
     Finish,
 }
 
@@ -19,7 +20,7 @@ pub enum LazyCellInfo {
 
 impl Default for CellInfo {
     fn default() -> Self {
-        CellInfo::Empty
+        CellInfo::Untouched
     }
 }
 
@@ -83,15 +84,21 @@ impl Maze {
             current_layer: Default::default()
         };
         result.current_layer = result.resolve_references(&result.layers[0].layer);
+        result.on_position_updated();
         result
     }
 
-    fn change_layer_if_necessary(&mut self) {
+    fn on_position_updated(&mut self) {
         let current_layer = &self.layers[self.current_layer_index];
         if let Some(transition) = current_layer.transitions.get(&self.position) {
             self.current_layer_index = transition.dest_layer;
             self.update_current_level();
         }
+
+        self.modify_cell_info(
+            (self.position.0, self.position.1, self.current_layer_index),
+            |info| if *info == CellInfo::Untouched { *info = CellInfo::Visited }
+        );
     }
 
     fn update_current_level(&mut self) {
@@ -103,7 +110,7 @@ impl Maze {
     pub fn try_move(&mut self, dir: Dir) -> MoveResult {
         if self.current_layer.passable(self.position, dir) {
             self.position = self.position + dir;
-            self.change_layer_if_necessary();
+            self.on_position_updated();
             if self.is_at_finish() {
                 MoveResult::FINISH
             } else {
