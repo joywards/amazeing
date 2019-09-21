@@ -74,19 +74,20 @@ pub struct Debug();
 impl LevelGenerator for Debug {
     fn try_generate(&self, stage: u32, rng: &mut SmallRng) -> Result<Maze, GenerationError> {
         let radius = 12 + stage as i32;
+        let depth = std::cmp::max(6, stage / 2);
         let shape = make_circle(radius).collect();
         let mut builder = MazeBuilder::new(shape, rng);
 
         let first = builder.generate_first_layer((0, 0));
-        let (mut left, center, mut right) = builder.fork_to_three_layers(first)?;
-        for _ in 0..6 {
+        let (mut left, mut center, mut right) = builder.fork_to_three_layers(first)?;
+        for _ in 0..depth {
             left = builder.add_layer_from_deepest_point(left)?;
         }
-        for _ in 0..6 {
+        for _ in 0..depth {
             right = builder.add_layer_from_deepest_point(right)?;
         }
-        builder.add_layer_from_deepest_point(center)?;
-        builder.set_finish_at_deepest_point(0);
+        center = builder.add_layer_from_deepest_point(center)?;
+        builder.set_finish_at_deepest_point(center);
         Ok(builder.into_maze())
     }
 
