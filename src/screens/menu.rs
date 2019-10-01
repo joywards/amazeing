@@ -21,7 +21,7 @@ impl MenuScreen {
         let mut found_uncompleted_level = false;
         let levels: Vec<_> = levels::GENERATORS.iter().map(|&generator| {
             let completed_stages = persistent_state
-                .progress.completed_stages(generator.id()) as u32;
+                .progress.completed_stages(generator.id());
             (generator, completed_stages)
         }).take_while(|(_generator, completed_stages)| {
             if found_uncompleted_level {

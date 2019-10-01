@@ -26,7 +26,8 @@ impl<Event> Observer<Event> where Event: ObservableEvent {
 
 #[derive(Clone)]
 pub struct LevelCompleted {
-    pub level: &'static str
+    pub level: &'static str,
+    pub stage: u32,
 }
 impl ObservableEvent for LevelCompleted {}
 

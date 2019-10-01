@@ -23,6 +23,7 @@ pub struct Scene {
     pub maze: Maze,
     pub camera: Camera,
     pub level_id: &'static str,
+    pub stage: u32,
 
     pub visual_info: HashMap<(i32, i32), VisualInfo>,
 }
@@ -56,12 +57,13 @@ impl VisualInfo {
 impl Scene {
     pub fn new(
         maze: Maze,
-        level_id: &'static str
+        level_id: &'static str,
+        stage: u32
     ) -> Scene {
         let mut result = Scene {
             maze,
             camera: (0.0, 0.0),
-            level_id,
+            level_id, stage,
             visual_info: HashMap::new(),
         };
         result.on_position_updated();

@@ -11,11 +11,19 @@ pub struct SceneScreen {
 }
 
 impl SceneScreen {
-    pub fn from_maze(maze: Maze, level_id: &'static str) -> Self {
+    pub fn from_maze(maze: Maze, level_id: &'static str, stage: u32) -> Self {
         Self {
-            scene: scene::Scene::new(maze, level_id),
+            scene: scene::Scene::new(maze, level_id, stage),
             renderer: scene::Renderer::new(),
         }
+    }
+
+    fn notify_about_level_completion(&self) {
+        level_completion_observer().lock().unwrap()
+            .notify(LevelCompleted{
+                level: self.scene.level_id,
+                stage: self.scene.stage,
+            });
     }
 }
 
@@ -51,10 +59,7 @@ impl Screen for SceneScreen {
 
             Action::Move(dir) => {
                 if self.scene.try_move(dir) == MoveResult::FINISH {
-                    level_completion_observer().lock().unwrap()
-                        .notify(LevelCompleted {
-                            level: self.scene.level_id
-                        });
+                    self.notify_about_level_completion();
                     Transition::Goto(Box::new(MenuScreen::new()))
                 } else {
                     Transition::Stay

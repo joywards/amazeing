@@ -8,6 +8,7 @@ use crate::levels::LevelGenerator;
 pub struct LoadingScreen {
     receiver: Receiver<Maze>,
     level_id: &'static str,
+    stage: u32,
 }
 
 impl LoadingScreen {
@@ -19,7 +20,7 @@ impl LoadingScreen {
             sender.send(generator.generate(stage)).unwrap();
         });
 
-        Self{receiver, level_id}
+        Self{receiver, level_id, stage}
     }
 }
 
@@ -28,7 +29,7 @@ impl Screen for LoadingScreen {
         match self.receiver.try_recv() {
             Ok(maze) => {
                 Transition::Goto(Box::new(SceneScreen::from_maze(
-                    maze, self.level_id
+                    maze, self.level_id, self.stage
                 )))
             },
             Err(TryRecvError::Empty) => Transition::Stay,

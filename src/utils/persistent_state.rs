@@ -5,7 +5,7 @@ use crate::observers::level_completion_observer;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Progress {
-    pub completed_stages: HashMap<String, u64>,
+    pub completed_stages: HashMap<String, u32>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -14,11 +14,14 @@ pub struct PersistentState {
 }
 
 impl Progress {
-    pub fn complete_level(&mut self, level: &'static str) {
-        *self.completed_stages.entry(level.to_string()).or_insert(0) += 1;
+    pub fn complete_stage(&mut self, level: &'static str, stage: u32) {
+        let completed = self.completed_stages.entry(level.to_string()).or_insert(0);
+        if *completed <= stage {
+            *completed = stage + 1;
+        }
     }
 
-    pub fn completed_stages(&self, level: &'static str) -> u64 {
+    pub fn completed_stages(&self, level: &'static str) -> u32 {
         self.completed_stages.get(level).copied().unwrap_or(0)
     }
 }
@@ -27,7 +30,7 @@ impl PersistentState {
     fn initialize() -> Self {
         level_completion_observer().lock().unwrap().observe(|event| {
             let mut state = get_persistent_state().lock().unwrap();
-            state.progress.complete_level(event.level);
+            state.progress.complete_stage(event.level, event.stage);
             state.flush();
         });
 
