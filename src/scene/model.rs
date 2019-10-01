@@ -14,7 +14,7 @@ pub type Camera = (f32, f32);
 
 #[derive(Clone, Copy)]
 pub struct VisualInfo {
-    directly_reachable: bool,
+    pub directly_reachable: bool,
     distance: u32,
     pub brightness: u8,
 }

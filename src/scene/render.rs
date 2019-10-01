@@ -112,13 +112,21 @@ impl Renderer {
 
         for cell in cells_iter {
             if layer.has(cell) {
-                let br = scene.visual_info.get(&cell).map(|info| info.brightness)
+                let visual_info = scene.visual_info.get(&cell);
+                let br = visual_info.map(|info| info.brightness)
                     .unwrap_or(INVISIBLE_CELLS_BRIGHTNESS);
-                canvas.set_draw_color(match layer.get_info(cell).unwrap() {
-                    CellInfo::Untouched => Color::RGB(br, br, br),
-                    CellInfo::Visited => Color::RGB(cmp::min(208, br), cmp::min(208, br), br),
-                    CellInfo::Finish => Color::RGB(0, br / 4 * 3, 0),
-                });
+                let visible = visual_info.map(|info| info.directly_reachable)
+                    .unwrap_or(false);
+                if visible {
+                    canvas.set_draw_color(match layer.get_info(cell).unwrap() {
+                        CellInfo::Untouched => Color::RGB(br, br, br),
+                        CellInfo::Visited => Color::RGB(cmp::min(208, br), cmp::min(208, br), br),
+                        CellInfo::Finish => Color::RGB(0, br / 4 * 3, 0),
+                    });
+                } else {
+                    canvas.set_draw_color(Color::RGB(br, br, br));
+                }
+
                 let view_coord = self.to_view(cell, scene.camera);
 
                 self.fill_rect(canvas, view_coord.0, view_coord.1, CELL_SIZE - 1, CELL_SIZE - 1);
