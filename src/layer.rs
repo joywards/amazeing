@@ -200,7 +200,7 @@ fn test_indexing() {
     use itertools::Itertools;
 
     let shape = (-3..=3).cartesian_product(-3..=3).collect::<Vec<_>>();
-    let mut layer = Layer::<()>::from_shape(&shape);
+    let layer = Layer::<()>::from_shape(&shape);
 
     for coord in (-10..10).cartesian_product(-10..10) {
         if let Some(index) = layer.index(coord) {

@@ -198,7 +198,7 @@ fn test_maze() {
     let mut maze = Maze::new(first, (0, 0));
     let second_layer = maze.add_layer(second, traversal::Info::default());
     maze.add_transition((0, 1), Dir::DOWN, 0, 1);
-    maze.set_finish(second_layer, (0, 3));
+    maze.set_finish((0, 3, second_layer));
 
     assert_eq!(maze.try_move(Dir::RIGHT), MoveResult::OBSTACLE);
     assert_eq!(maze.try_move(Dir::DOWN), MoveResult::SUCCESS);
