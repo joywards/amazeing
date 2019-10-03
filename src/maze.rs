@@ -48,6 +48,7 @@ pub struct Maze {
     current_layer_index: usize,
     // A copy of the current layer is made for speeding up rendering.
     current_layer: Layer<CellInfo>,
+    path_from_start: Vec<Dir>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -81,7 +82,8 @@ impl Maze {
             }],
             position: spawn_point,
             current_layer_index: 0,
-            current_layer: Default::default()
+            current_layer: Default::default(),
+            path_from_start: Vec::new(),
         };
         result.current_layer = result.resolve_references(&result.layers[0].layer);
         result.on_position_updated();
@@ -107,10 +109,25 @@ impl Maze {
         );
     }
 
+    fn update_path(path: &mut Vec<Dir>, dir: Dir) {
+        if let Some(&last) = path.last() {
+            if last == dir.opposite() {
+                path.pop();
+                return;
+            }
+        }
+        path.push(dir);
+    }
+
+    fn do_move(&mut self, dir: Dir) {
+        self.position = self.position + dir;
+        Self::update_path(&mut self.path_from_start, dir);
+        self.on_position_updated();
+    }
+
     pub fn try_move(&mut self, dir: Dir) -> MoveResult {
         if self.current_layer.passable(self.position, dir) {
-            self.position = self.position + dir;
-            self.on_position_updated();
+            self.do_move(dir);
             if self.is_at_finish() {
                 MoveResult::FINISH
             } else {
@@ -118,6 +135,12 @@ impl Maze {
             }
         } else {
             MoveResult::OBSTACLE
+        }
+    }
+
+    pub fn move_towards_start(&mut self) {
+        if !self.path_from_start.is_empty() {
+            self.do_move(self.path_from_start.last().unwrap().opposite());
         }
     }
 

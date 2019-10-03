@@ -30,6 +30,7 @@ impl SceneScreen {
 enum Action {
     Exit,
     Move(Dir),
+    MoveBackwards,
     Nothing,
 }
 
@@ -38,6 +39,9 @@ impl Screen for SceneScreen {
         let action = match event {
             Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                 Action::Exit
+            },
+            Event::KeyDown { keycode: Some(Keycode::Space), .. } => {
+                Action::MoveBackwards
             },
             Event::KeyDown { keycode: Some(Keycode::Down), .. } => {
                 Action::Move(Dir::DOWN)
@@ -56,7 +60,6 @@ impl Screen for SceneScreen {
 
         match action {
             Action::Exit => Transition::Goto(Box::new(MenuScreen::new())),
-
             Action::Move(dir) => {
                 if self.scene.try_move(dir) == MoveResult::FINISH {
                     self.notify_about_level_completion();
@@ -64,6 +67,10 @@ impl Screen for SceneScreen {
                 } else {
                     Transition::Stay
                 }
+            },
+            Action::MoveBackwards => {
+                self.scene.move_towards_start();
+                Transition::Stay
             },
             Action::Nothing => Transition::Stay
         }

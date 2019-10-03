@@ -97,6 +97,11 @@ impl Scene {
         result
     }
 
+    pub fn move_towards_start(&mut self) {
+        self.maze.move_towards_start();
+        self.on_position_updated();
+    }
+
     fn on_position_updated(&mut self) {
         self.recalculate_visual_info();
     }
