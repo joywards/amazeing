@@ -135,6 +135,10 @@ impl<CellInfo: Default> Layer<CellInfo> {
         }
     }
 
+    pub fn treat_as_reachable(&mut self, a: (i32, i32), b: (i32, i32)) {
+        self.dsu.union(self.index(a).unwrap(), self.index(b).unwrap());
+    }
+
     pub fn map<ResultInfo: Default>(
         &self,
         f: impl Fn(&CellInfo, (i32, i32)) -> ResultInfo
@@ -193,6 +197,10 @@ fn test_layer() {
     layer.join((0, 1), Dir::UP);
     assert!(layer.passable((0, 0), Dir::DOWN));
     assert!(layer.reachable((1, 0), (0, 1)));
+
+    layer.treat_as_reachable((-1, -2), (0, 0));
+    assert!(layer.reachable((-1, -2), (0, 1)));
+    assert!(!layer.reachable((-1, -2), (-1, 0)));
 }
 
 #[test]
