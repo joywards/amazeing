@@ -19,6 +19,12 @@ pub struct VisualInfo {
     pub brightness: u8,
 }
 
+enum State {
+    Idle,
+    /// Contains duration since last movement.
+    MovingToFinish(Duration),
+}
+
 pub struct Scene {
     pub maze: Maze,
     pub camera: Camera,
@@ -26,6 +32,7 @@ pub struct Scene {
     pub stage: u32,
 
     pub visual_info: HashMap<(i32, i32), VisualInfo>,
+    state: State,
 }
 
 
@@ -65,16 +72,42 @@ impl Scene {
             camera: (0.0, 0.0),
             level_id, stage,
             visual_info: HashMap::new(),
+            state: State::Idle,
         };
         result.on_position_updated();
         result
     }
 
     pub fn update(&mut self, elapsed: Duration) {
+        self.update_scheduled_movement(elapsed);
         self.update_camera(elapsed);
 
         for info in self.visual_info.values_mut() {
             info.update(elapsed);
+        }
+    }
+
+    fn update_scheduled_movement(&mut self, elapsed: Duration) {
+        const MOVEMENT_INTERVAL: Duration = Duration::from_millis(35);
+        if let State::MovingToFinish(mut time_since_movement) = self.state {
+            time_since_movement += elapsed;
+            let mut finish_movement = false;
+            while time_since_movement >= MOVEMENT_INTERVAL {
+                time_since_movement -= MOVEMENT_INTERVAL;
+                match self.maze.try_move_towards_finish() {
+                    MoveResult::MovedToUntouched | MoveResult::Finish => {
+                        finish_movement = true;
+                        break;
+                    },
+                    _ => {},
+                };
+            }
+            if finish_movement {
+                self.state = State::Idle;
+            } else {
+                self.state = State::MovingToFinish(time_since_movement);
+            }
+            self.on_position_updated();
         }
     }
 
@@ -105,10 +138,8 @@ impl Scene {
         result
     }
 
-    pub fn try_move_towards_finish(&mut self) -> MoveResult {
-        let result = self.maze.try_move_towards_finish();
-        self.on_position_updated();
-        result
+    pub fn start_moving_to_finish(&mut self) {
+        self.state = State::MovingToFinish(Duration::from_secs(0));
     }
 
     fn on_position_updated(&mut self) {

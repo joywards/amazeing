@@ -71,7 +71,8 @@ impl Screen for SceneScreen {
                 self.scene.try_move_towards_start()
             },
             Action::MoveTowardsFinish => {
-                self.scene.try_move_towards_finish()
+                self.scene.start_moving_to_finish();
+                return Transition::Stay;
             },
             Action::Nothing => return Transition::Stay,
         };
