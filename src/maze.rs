@@ -40,6 +40,7 @@ pub struct MazeLayer {
     pub layer: Layer<LazyCellInfo>,
     transitions: HashMap<(i32, i32), Transition>,
     pub info: traversal::Info,
+    pub parent_layer_index: usize,
 }
 
 pub struct Maze {
@@ -49,6 +50,7 @@ pub struct Maze {
     // A copy of the current layer is made for speeding up rendering.
     current_layer: Layer<CellInfo>,
     path_from_start: Vec<Dir>,
+    path_from_finish: Vec<Dir>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -79,11 +81,13 @@ impl Maze {
                 layer: layer.clone(),
                 transitions: HashMap::new(),
                 info: traversal::dfs(&layer, spawn_point, None),
+                parent_layer_index: 0,
             }],
             position: spawn_point,
             current_layer_index: 0,
             current_layer: Default::default(),
             path_from_start: Vec::new(),
+            path_from_finish: Vec::new(),
         };
         result.current_layer = result.resolve_references(&result.layers[0].layer);
         result.on_position_updated();
@@ -122,6 +126,7 @@ impl Maze {
     fn do_move(&mut self, dir: Dir) {
         self.position = self.position + dir;
         Self::update_path(&mut self.path_from_start, dir);
+        Self::update_path(&mut self.path_from_finish, dir);
         self.on_position_updated();
     }
 
@@ -144,6 +149,12 @@ impl Maze {
         }
     }
 
+    pub fn move_towards_finish(&mut self) {
+        if !self.path_from_finish.is_empty() {
+            self.do_move(self.path_from_finish.last().unwrap().opposite());
+        }
+    }
+
     pub fn current_layer(&self) -> &Layer<CellInfo> {
         &self.current_layer
     }
@@ -161,7 +172,9 @@ impl Maze {
     }
 
     pub fn set_finish(&mut self, pos: (i32, i32, usize)) {
-        self.modify_cell_info(pos, |info| *info = CellInfo::Finish)
+        self.modify_cell_info(pos, |info| *info = CellInfo::Finish);
+        assert!(self.path_from_finish.is_empty(), "Finish is already set");
+        self.update_path_from_finish(pos);
     }
 
     fn is_at_finish(&self) -> bool {
@@ -188,11 +201,16 @@ impl Maze {
         self.update_current_level();
     }
 
-    pub fn add_layer(&mut self, layer: Layer<LazyCellInfo>, info: traversal::Info) -> usize {
+    pub fn add_layer(
+        &mut self,
+        layer: Layer<LazyCellInfo>, info: traversal::Info,
+        parent_layer_index: usize
+    ) -> usize {
         self.layers.push(MazeLayer{
             layer,
             transitions: HashMap::new(),
-            info
+            info,
+            parent_layer_index
         });
         self.layers.len() - 1
     }
@@ -205,6 +223,25 @@ impl Maze {
         let to = &mut self.layers[to_index];
         assert!(to.layer.passable(coord, dir));
         to.transitions.insert(coord, Transition{dest_layer: from_index});
+    }
+
+    fn update_path_from_finish(&mut self, finish: (i32, i32, usize)) {
+        self.path_from_finish.clear();
+
+        let mut pos = (finish.0, finish.1);
+        let mut layer_index = finish.2;
+        while layer_index != self.current_layer_index || pos != self.position {
+            let layer = &self.maze_layer(layer_index);
+            match layer.info.coords[&pos].came_from {
+                Some(dir) => {
+                    self.path_from_finish.push(dir);
+                    pos = pos + dir;
+                },
+                None => {
+                    layer_index = layer.parent_layer_index;
+                },
+            };
+        }
     }
 }
 
@@ -219,7 +256,8 @@ fn test_maze() {
     let second = first.clone();
 
     let mut maze = Maze::new(first, (0, 0));
-    let second_layer = maze.add_layer(second, traversal::Info::default());
+    let info = traversal::dfs(&second, (0, 2), Some(Dir::UP));
+    let second_layer = maze.add_layer(second, info, 0);
     maze.add_transition((0, 1), Dir::DOWN, 0, 1);
     maze.set_finish((0, 3, second_layer));
 

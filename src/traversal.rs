@@ -74,8 +74,10 @@ pub fn dfs<I: Default>(
                 &mut info, &mut visible_trace, 1
             );
         }
-        info.coords.get_mut(&start).unwrap().came_from = None;
     };
+    // There is no way to go backwards even if `from` is Some.
+    // `from` only sets the direction of traversal.
+    info.coords.get_mut(&start).unwrap().came_from = None;
 
     info
 }

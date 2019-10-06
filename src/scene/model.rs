@@ -102,6 +102,11 @@ impl Scene {
         self.on_position_updated();
     }
 
+    pub fn move_towards_finish(&mut self) {
+        self.maze.move_towards_finish();
+        self.on_position_updated();
+    }
+
     fn on_position_updated(&mut self) {
         self.recalculate_visual_info();
     }

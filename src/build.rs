@@ -135,7 +135,7 @@ impl<'r> MazeBuilder<'r> {
             &new_layer, source_coord, Some(back)
         );
 
-        let new_layer_index = maze.add_layer(new_layer, info);
+        let new_layer_index = maze.add_layer(new_layer, info, source_layer_index);
         maze.add_transition(source_coord, escape_dir, source_layer_index, new_layer_index);
 
         new_layer_index
