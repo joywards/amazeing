@@ -2,6 +2,7 @@
 
 extern crate sdl2;
 extern crate itertools;
+extern crate itertools_num;
 extern crate dirs;
 extern crate serde;
 extern crate ron;

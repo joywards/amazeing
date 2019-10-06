@@ -3,7 +3,7 @@ use rand::SeedableRng;
 use rand::prelude::*;
 
 use crate::build::{MazeBuilder, GenerationError};
-use crate::geometry_sets::{make_circle, make_ring};
+use crate::geometry_sets::{make_circle, make_ring, make_lemniscate};
 use crate::maze::Maze;
 
 
@@ -28,10 +28,11 @@ pub trait LevelGenerator: Send + Sync {
 
 
 lazy_static! {
-    pub static ref GENERATORS: [&'static dyn LevelGenerator; 4] = {
+    pub static ref GENERATORS: [&'static dyn LevelGenerator; 5] = {
         [
             &Plain(),
             &Ring(),
+            &Lemniscate(),
             &Double(),
             &Debug(),
         ]
@@ -77,6 +78,33 @@ impl LevelGenerator for Ring {
     }
 
     fn id(&self) -> &'static str { "ring" }
+}
+
+
+pub struct Lemniscate();
+
+impl LevelGenerator for Lemniscate {
+    fn try_generate(&self, stage: u32, rng: &mut SmallRng) -> Result<Maze, GenerationError> {
+        let size = 20 + stage;
+        let breadth = 3 + stage as i32 / 8;
+        let mut shape: Vec<_> = make_lemniscate(size as f32, breadth).collect();
+        shape.sort();
+        let spawn = *shape.choose(rng).unwrap();
+
+        let mut builder = MazeBuilder::new(shape, rng);
+
+        let first = builder.generate_first_layer(spawn);
+        let last = if stage < 2 {
+            first
+        } else {
+            builder.fork_to_two_layers(first)?.0
+        };
+        builder.set_finish_at_deepest_point(last);
+
+        Ok(builder.into_maze())
+    }
+
+    fn id(&self) -> &'static str { "lemniscate" }
 }
 
 

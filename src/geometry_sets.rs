@@ -33,3 +33,15 @@ pub fn make_ring(inner_radius: i32, outer_radius: i32) -> impl Iterator<Item=(i3
             }
         })
 }
+
+pub fn make_lemniscate(size: f32, breadth: i32) -> impl Iterator<Item=(i32, i32)> {
+    let lemniscate = itertools_num::linspace(
+        0.0, std::f32::consts::PI / 2.0, size as usize
+    ).flat_map(move |t| {
+        let d = 1. + t.sin().powi(2);
+        let x = (size * t.cos() / d).round() as i32;
+        let y = (size * t.sin() * t.cos() / d).round() as i32;
+        vec![(x, y), (-x, y), (x, -y), (-x, -y)]
+    }).collect();
+    dilate(&lemniscate, &make_circle(breadth).collect()).into_iter()
+}
