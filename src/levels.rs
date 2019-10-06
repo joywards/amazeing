@@ -28,12 +28,11 @@ pub trait LevelGenerator: Send + Sync {
 
 
 lazy_static! {
-    pub static ref GENERATORS: [&'static dyn LevelGenerator; 5] = {
+    pub static ref GENERATORS: [&'static dyn LevelGenerator; 4] = {
         [
             &Plain(),
             &Ring(),
             &Lemniscate(),
-            &Double(),
             &Debug(),
         ]
     };
@@ -105,23 +104,6 @@ impl LevelGenerator for Lemniscate {
     }
 
     fn id(&self) -> &'static str { "lemniscate" }
-}
-
-
-pub struct Double();
-
-impl LevelGenerator for Double {
-    fn try_generate(&self, stage: u32, rng: &mut SmallRng) -> Result<Maze, GenerationError> {
-        let radius = 11 + stage as i32;
-        let shape = make_circle(radius).collect();
-        let mut builder = MazeBuilder::new(shape, rng);
-        let first = builder.generate_first_layer((0, 0));
-        let last = builder.add_layer_from_deepest_point(first)?;
-        builder.set_finish_at_deepest_point(last);
-        Ok(builder.into_maze())
-    }
-
-    fn id(&self) -> &'static str { "double" }
 }
 
 
