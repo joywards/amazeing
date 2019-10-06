@@ -5,6 +5,7 @@ use rand::prelude::*;
 use crate::build::{MazeBuilder, GenerationError};
 use crate::geometry_sets::{make_circle, make_ring, make_lemniscate};
 use crate::maze::Maze;
+use crate::visible_area::visibility_radius;
 
 
 pub trait LevelGenerator: Send + Sync {
@@ -28,11 +29,12 @@ pub trait LevelGenerator: Send + Sync {
 
 
 lazy_static! {
-    pub static ref GENERATORS: [&'static dyn LevelGenerator; 4] = {
+    pub static ref GENERATORS: [&'static dyn LevelGenerator; 5] = {
         [
             &Plain(),
             &Ring(),
             &Lemniscate(),
+            &DeceptivelySmall(),
             &Debug(),
         ]
     };
@@ -104,6 +106,26 @@ impl LevelGenerator for Lemniscate {
     }
 
     fn id(&self) -> &'static str { "lemniscate" }
+}
+
+
+pub struct DeceptivelySmall();
+
+impl LevelGenerator for DeceptivelySmall {
+    fn try_generate(&self, stage: u32, rng: &mut SmallRng) -> Result<Maze, GenerationError> {
+        let radius = visibility_radius() - 2;
+        let depth = 1 + stage / 2;
+        let shape = make_circle(radius).collect();
+        let mut builder = MazeBuilder::new(shape, rng);
+        let mut last = builder.generate_first_layer((0, 0));
+        for _ in 0..depth {
+            last = builder.add_layer_from_deepest_point(last)?;
+        }
+        builder.set_finish_at_deepest_point(last);
+        Ok(builder.into_maze())
+    }
+
+    fn id(&self) -> &'static str { "deceptively_small" }
 }
 
 
