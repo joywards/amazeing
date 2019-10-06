@@ -10,6 +10,7 @@ extern crate lazy_static;
 
 mod utils;
 mod geometry;
+mod geometry_sets;
 mod layer;
 mod maze;
 mod generation;

@@ -2,10 +2,8 @@ use rand::rngs::SmallRng;
 use rand::SeedableRng;
 use rand::prelude::*;
 
-use crate::build::{
-    MazeBuilder, GenerationError,
-    make_circle, make_ring,
-};
+use crate::build::{MazeBuilder, GenerationError};
+use crate::geometry_sets::{make_circle, make_ring};
 use crate::maze::Maze;
 
 

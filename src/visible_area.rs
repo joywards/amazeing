@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use crate::utils::region::Region;
-use crate::build::make_circle;
+use crate::geometry_sets::make_circle;
 
 // This value is used by both renderer and maze builder.
 // That's why using global value is simplier than passing it through call stack.
