@@ -21,6 +21,18 @@ pub fn make_circle(radius: i32) -> impl Iterator<Item=(i32, i32)> {
         })
 }
 
+pub fn make_ring(inner_radius: i32, outer_radius: i32) -> impl Iterator<Item=(i32, i32)> {
+    (-outer_radius..=outer_radius).cartesian_product(-outer_radius..=outer_radius)
+        .filter_map(move |(x, y)| {
+            let r_sqr = x.pow(2) + y.pow(2);
+            if r_sqr < outer_radius.pow(2) && r_sqr >= inner_radius.pow(2) {
+                Some((x, y))
+            } else {
+                None
+            }
+        })
+}
+
 fn reachable_cells(
     layer: &Layer<LazyCellInfo>,
     from: (i32, i32),

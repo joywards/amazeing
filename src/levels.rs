@@ -1,7 +1,11 @@
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
+use rand::prelude::*;
 
-use crate::build::{MazeBuilder, make_circle, GenerationError};
+use crate::build::{
+    MazeBuilder, GenerationError,
+    make_circle, make_ring,
+};
 use crate::maze::Maze;
 
 
@@ -26,9 +30,10 @@ pub trait LevelGenerator: Send + Sync {
 
 
 lazy_static! {
-    pub static ref GENERATORS: [&'static dyn LevelGenerator; 3] = {
+    pub static ref GENERATORS: [&'static dyn LevelGenerator; 4] = {
         [
             &Plain(),
+            &Ring(),
             &Double(),
             &Debug(),
         ]
@@ -49,6 +54,31 @@ impl LevelGenerator for Plain {
     }
 
     fn id(&self) -> &'static str { "plain" }
+}
+
+
+pub struct Ring();
+
+impl LevelGenerator for Ring {
+    fn try_generate(&self, stage: u32, rng: &mut SmallRng) -> Result<Maze, GenerationError> {
+        let outer_radius = 17 + stage as i32 / 2;
+        let inner_radius = outer_radius - 9;
+        let depth = 1 + stage / 3;
+        let shape: Vec<_> = make_ring(inner_radius, outer_radius).collect();
+        let spawn = *shape.choose(rng).unwrap();
+
+        let mut builder = MazeBuilder::new(shape, rng);
+
+        let mut last = builder.generate_first_layer(spawn);
+        for _ in 0..depth {
+            last = builder.add_layer_from_deepest_point(last)?;
+        }
+        builder.set_finish_at_deepest_point(last);
+
+        Ok(builder.into_maze())
+    }
+
+    fn id(&self) -> &'static str { "ring" }
 }
 
 
