@@ -62,25 +62,25 @@ impl Screen for SceneScreen {
             _ => Action::Nothing
         };
 
-        match action {
-            Action::Exit => Transition::Goto(Box::new(MenuScreen::new())),
+        let move_result = match action {
+            Action::Exit => return Transition::Goto(Box::new(MenuScreen::new())),
             Action::Move(dir) => {
-                if self.scene.try_move(dir) == MoveResult::FINISH {
-                    self.notify_about_level_completion();
-                    Transition::Goto(Box::new(MenuScreen::new()))
-                } else {
-                    Transition::Stay
-                }
+                self.scene.try_move(dir)
             },
             Action::MoveBackwards => {
-                self.scene.move_towards_start();
-                Transition::Stay
+                self.scene.try_move_towards_start()
             },
             Action::MoveTowardsFinish => {
-                self.scene.move_towards_finish();
-                Transition::Stay
+                self.scene.try_move_towards_finish()
             },
-            Action::Nothing => Transition::Stay
+            Action::Nothing => return Transition::Stay,
+        };
+
+        if move_result == MoveResult::Finish {
+            self.notify_about_level_completion();
+            Transition::Goto(Box::new(MenuScreen::new()))
+        } else {
+            Transition::Stay
         }
     }
 

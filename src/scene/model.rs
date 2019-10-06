@@ -91,20 +91,24 @@ impl Scene {
 
     pub fn try_move(&mut self, dir: Dir) -> MoveResult {
         let result = self.maze.try_move(dir);
-        if result == MoveResult::SUCCESS {
+        if result == MoveResult::MovedToVisited
+            || result == MoveResult::MovedToUntouched
+        {
             self.on_position_updated();
         }
         result
     }
 
-    pub fn move_towards_start(&mut self) {
-        self.maze.move_towards_start();
+    pub fn try_move_towards_start(&mut self) -> MoveResult {
+        let result = self.maze.try_move_towards_start();
         self.on_position_updated();
+        result
     }
 
-    pub fn move_towards_finish(&mut self) {
-        self.maze.move_towards_finish();
+    pub fn try_move_towards_finish(&mut self) -> MoveResult {
+        let result = self.maze.try_move_towards_finish();
         self.on_position_updated();
+        result
     }
 
     fn on_position_updated(&mut self) {

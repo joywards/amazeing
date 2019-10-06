@@ -55,9 +55,10 @@ pub struct Maze {
 
 #[derive(Debug, PartialEq)]
 pub enum MoveResult{
-    SUCCESS,
-    OBSTACLE,
-    FINISH,
+    MovedToVisited,
+    MovedToUntouched,
+    Obstacle,
+    Finish,
 }
 
 impl Maze {
@@ -132,26 +133,32 @@ impl Maze {
 
     pub fn try_move(&mut self, dir: Dir) -> MoveResult {
         if self.current_layer.passable(self.position, dir) {
+            let new_position = self.position + dir;
+            let cell_state = *self.current_layer.get_info(new_position).unwrap();
             self.do_move(dir);
-            if self.is_at_finish() {
-                MoveResult::FINISH
-            } else {
-                MoveResult::SUCCESS
+            match cell_state {
+                CellInfo::Finish => MoveResult::Finish,
+                CellInfo::Untouched => MoveResult::MovedToUntouched,
+                CellInfo::Visited => MoveResult::MovedToVisited,
             }
         } else {
-            MoveResult::OBSTACLE
+            MoveResult::Obstacle
         }
     }
 
-    pub fn move_towards_start(&mut self) {
+    pub fn try_move_towards_start(&mut self) -> MoveResult {
         if !self.path_from_start.is_empty() {
-            self.do_move(self.path_from_start.last().unwrap().opposite());
+            self.try_move(self.path_from_start.last().unwrap().opposite())
+        } else {
+            MoveResult::Obstacle
         }
     }
 
-    pub fn move_towards_finish(&mut self) {
+    pub fn try_move_towards_finish(&mut self) -> MoveResult {
         if !self.path_from_finish.is_empty() {
-            self.do_move(self.path_from_finish.last().unwrap().opposite());
+            self.try_move(self.path_from_finish.last().unwrap().opposite())
+        } else {
+            MoveResult::Obstacle
         }
     }
 
@@ -175,10 +182,6 @@ impl Maze {
         self.modify_cell_info(pos, |info| *info = CellInfo::Finish);
         assert!(self.path_from_finish.is_empty(), "Finish is already set");
         self.update_path_from_finish(pos);
-    }
-
-    fn is_at_finish(&self) -> bool {
-        *self.current_layer().get_info(self.position).unwrap() == CellInfo::Finish
     }
 
     fn mut_lazy_cell_info(&mut self, (x, y, z): (i32, i32, usize)) -> Option<&mut LazyCellInfo> {
@@ -253,7 +256,10 @@ fn test_maze() {
     for i in 1..=3 {
         first.join((0, i), Dir::UP);
     }
-    let second = first.clone();
+    let mut second = first.clone();
+    for i in 1..=3 {
+        *second.get_info_mut((0, i)).unwrap() = LazyCellInfo::Ref(0);
+    }
 
     let mut maze = Maze::new(first, (0, 0));
     let info = traversal::dfs(&second, (0, 2), Some(Dir::UP));
@@ -261,30 +267,30 @@ fn test_maze() {
     maze.add_transition((0, 1), Dir::DOWN, 0, 1);
     maze.set_finish((0, 3, second_layer));
 
-    assert_eq!(maze.try_move(Dir::RIGHT), MoveResult::OBSTACLE);
-    assert_eq!(maze.try_move(Dir::DOWN), MoveResult::SUCCESS);
+    assert_eq!(maze.try_move(Dir::RIGHT), MoveResult::Obstacle);
+    assert_eq!(maze.try_move(Dir::DOWN), MoveResult::MovedToUntouched);
     assert_eq!(maze.position, (0, 1));
     assert_eq!(maze.current_layer_index, 0);
     assert!(!maze.current_layer.has((2, 2)));
 
-    assert_eq!(maze.try_move(Dir::DOWN), MoveResult::SUCCESS);
+    assert_eq!(maze.try_move(Dir::DOWN), MoveResult::MovedToUntouched);
     assert_eq!(maze.position, (0, 2));
     assert_eq!(maze.current_layer_index, 1);
 
-    assert_eq!(maze.try_move(Dir::DOWN), MoveResult::FINISH);
+    assert_eq!(maze.try_move(Dir::DOWN), MoveResult::Finish);
     assert_eq!(maze.position, (0, 3));
     assert_eq!(maze.current_layer_index, 1);
 
-    assert_eq!(maze.try_move(Dir::UP), MoveResult::SUCCESS);
+    assert_eq!(maze.try_move(Dir::UP), MoveResult::MovedToVisited);
     assert_eq!(maze.position, (0, 2));
     assert_eq!(maze.current_layer_index, 1);
 
-    assert_eq!(maze.try_move(Dir::UP), MoveResult::SUCCESS);
+    assert_eq!(maze.try_move(Dir::UP), MoveResult::MovedToVisited);
     assert_eq!(maze.position, (0, 1));
     assert_eq!(maze.current_layer_index, 0);
 
-    assert_eq!(maze.try_move(Dir::UP), MoveResult::SUCCESS);
+    assert_eq!(maze.try_move(Dir::UP), MoveResult::MovedToVisited);
     assert_eq!(maze.position, (0, 0));
     assert_eq!(maze.current_layer_index, 0);
-    assert_eq!(maze.try_move(Dir::UP), MoveResult::OBSTACLE);
+    assert_eq!(maze.try_move(Dir::UP), MoveResult::Obstacle);
 }
