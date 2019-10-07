@@ -31,7 +31,7 @@ enum Action {
     Exit,
     Move(Dir),
     MoveBackwards,
-    MoveTowardsFinish,
+    UseHint,
     Nothing,
 }
 
@@ -45,7 +45,7 @@ impl Screen for SceneScreen {
                 Action::MoveBackwards
             },
             Event::KeyDown { keycode: Some(Keycode::Backquote), .. } => {
-                Action::MoveTowardsFinish
+                Action::UseHint
             },
             Event::KeyDown { keycode: Some(Keycode::Down), .. } => {
                 Action::Move(Dir::DOWN)
@@ -70,8 +70,8 @@ impl Screen for SceneScreen {
             Action::MoveBackwards => {
                 self.scene.try_move_towards_start()
             },
-            Action::MoveTowardsFinish => {
-                self.scene.start_moving_to_finish();
+            Action::UseHint => {
+                self.scene.use_hint();
                 return Transition::Stay;
             },
             Action::Nothing => return Transition::Stay,

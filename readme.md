@@ -12,6 +12,7 @@ Keyboard                | Action
 <kbd>&uparrow;</kbd>, <kbd>&leftarrow;</kbd>, <kbd>&rightarrow;</kbd>, <kbd>&downarrow;</kbd> | Move
 <kbd>Space</kbd>        | Move one step backwards
 <kbd>Esc</kbd>          | Return to main menu or exit game
+<kbd>`</kbd>            | Use a hint
 
 ## Running
 If you have never compiled Rust before, visit [rustup.rs](https://rustup.rs/) to install

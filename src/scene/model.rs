@@ -8,6 +8,7 @@ use crate::utils::tuple_arithmetic::{distance, linear_interpolation};
 
 
 const MIN_BRIGHTNESS: u8 = 96;
+const HINT_USAGE_ALLOWED_INTERVAL: Duration = Duration::from_secs(60);
 
 
 pub type Camera = (f32, f32);
@@ -33,6 +34,7 @@ pub struct Scene {
 
     pub visual_info: HashMap<(i32, i32), VisualInfo>,
     state: State,
+    time_since_hint_usage: Duration,
 }
 
 
@@ -73,6 +75,7 @@ impl Scene {
             level_id, stage,
             visual_info: HashMap::new(),
             state: State::Idle,
+            time_since_hint_usage: Duration::from_secs(0),
         };
         result.on_position_updated();
         result
@@ -81,10 +84,10 @@ impl Scene {
     pub fn update(&mut self, elapsed: Duration) {
         self.update_scheduled_movement(elapsed);
         self.update_camera(elapsed);
-
         for info in self.visual_info.values_mut() {
             info.update(elapsed);
         }
+        self.time_since_hint_usage += elapsed;
     }
 
     fn update_scheduled_movement(&mut self, elapsed: Duration) {
@@ -138,8 +141,11 @@ impl Scene {
         result
     }
 
-    pub fn start_moving_to_finish(&mut self) {
-        self.state = State::MovingToFinish(Duration::from_secs(0));
+    pub fn use_hint(&mut self) {
+        if self.time_since_hint_usage >= HINT_USAGE_ALLOWED_INTERVAL {
+            self.state = State::MovingToFinish(Duration::from_secs(0));
+            self.time_since_hint_usage = Duration::from_secs(0);
+        }
     }
 
     fn on_position_updated(&mut self) {
