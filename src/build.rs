@@ -145,12 +145,21 @@ impl<'r> MazeBuilder<'r> {
         &mut self,
         spawn_point: (i32, i32)
     ) -> usize {
-        use std::iter::once;
+        self.generate_first_layer_from_multiple(&[spawn_point])
+    }
 
+    pub fn generate_first_layer_from_multiple(
+        &mut self,
+        spawn_points: &[(i32, i32)]
+    ) -> usize {
+        assert!(!spawn_points.is_empty());
         let mut layer = Layer::from_shape(&self.shape);
-        generate(&mut layer, once(spawn_point), &Default::default(), &mut self.rng);
+        for &spawn_point in &spawn_points[1..] {
+            layer.treat_as_reachable(spawn_points[0], spawn_point);
+        }
+        generate(&mut layer, spawn_points.iter().copied(), &Default::default(), &mut self.rng);
 
-        self.maze = Some(Maze::new(layer, spawn_point));
+        self.maze = Some(Maze::new(layer, spawn_points[0]));
 
         0
     }

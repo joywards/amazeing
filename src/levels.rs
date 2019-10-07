@@ -3,7 +3,12 @@ use rand::SeedableRng;
 use rand::prelude::*;
 
 use crate::build::{MazeBuilder, GenerationError};
-use crate::geometry_sets::{make_circle, make_ring, make_lemniscate};
+use crate::geometry_sets::{
+    make_circle,
+    make_ring,
+    make_lemniscate,
+    make_hourglass,
+};
 use crate::maze::Maze;
 use crate::visible_area::visibility_radius;
 
@@ -29,11 +34,12 @@ pub trait LevelGenerator: Send + Sync {
 
 
 lazy_static! {
-    pub static ref GENERATORS: [&'static dyn LevelGenerator; 5] = {
+    pub static ref GENERATORS: [&'static dyn LevelGenerator; 6] = {
         [
             &Plain(),
             &Ring(),
             &Lemniscate(),
+            &Hourglass(),
             &DeceptivelySmall(),
             &Debug(),
         ]
@@ -106,6 +112,31 @@ impl LevelGenerator for Lemniscate {
     }
 
     fn id(&self) -> &'static str { "lemniscate" }
+}
+
+
+pub struct Hourglass();
+
+impl LevelGenerator for Hourglass {
+    fn try_generate(&self, stage: u32, rng: &mut SmallRng) -> Result<Maze, GenerationError> {
+        let radius = 10 + stage as i32;
+        let depth = 1 + stage / 3;
+        let shape = make_hourglass(radius).collect();
+
+        let mut builder = MazeBuilder::new(shape, rng);
+
+        let mut last = builder.generate_first_layer_from_multiple(
+            &[(0, 0), (0, -1)]
+        );
+        for _ in 0..depth {
+            last = builder.fork_to_two_layers(last)?.1
+        }
+        builder.set_finish_at_deepest_point(last);
+
+        Ok(builder.into_maze())
+    }
+
+    fn id(&self) -> &'static str { "hourglass" }
 }
 
 
