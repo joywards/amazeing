@@ -172,6 +172,9 @@ impl<'r> MazeBuilder<'r> {
         let deepest = *info.leaf_escapables.iter().max_by_key(
             |coord| info.coords[&coord].depth
         ).ok_or(GenerationError{})?;
+        if info.coords[&deepest].depth == 0 {
+            return Err(GenerationError{});
+        }
 
         let new_layer_index = self.add_layer(
             src_layer,
