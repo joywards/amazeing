@@ -2,6 +2,7 @@ use std::sync::mpsc::{channel, Receiver, TryRecvError};
 
 use crate::screens::*;
 use crate::screens::scene::SceneScreen;
+use crate::screens::menu::MenuScreen;
 use crate::maze::Maze;
 use crate::levels::LevelGenerator;
 
@@ -33,7 +34,9 @@ impl Screen for LoadingScreen {
                 )))
             },
             Err(TryRecvError::Empty) => Transition::Stay,
-            Err(TryRecvError::Disconnected) => Transition::Stay,
+            Err(TryRecvError::Disconnected) => Transition::Goto(
+                Box::new(MenuScreen::new())
+            ),
         }
     }
 
