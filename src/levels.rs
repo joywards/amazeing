@@ -1,6 +1,7 @@
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
 use rand::prelude::*;
+use itertools::Itertools;
 
 use crate::build::{MazeBuilder, GenerationError};
 use crate::geometry_sets::{
@@ -41,7 +42,7 @@ lazy_static! {
             &Lemniscate(),
             &Hourglass(),
             &DeceptivelySmall(),
-            &Debug(),
+            &TrickySquare(),
         ]
     };
 }
@@ -160,27 +161,27 @@ impl LevelGenerator for DeceptivelySmall {
 }
 
 
-pub struct Debug();
+pub struct TrickySquare();
 
-impl LevelGenerator for Debug {
+impl LevelGenerator for TrickySquare {
     fn try_generate(&self, stage: u32, rng: &mut SmallRng) -> Result<Maze, GenerationError> {
-        let radius = 12 + stage as i32;
+        let size = 12 + stage as i32;
         let depth = std::cmp::max(6, stage / 2);
-        let shape = make_circle(radius).collect();
+        let shape = (-size..=size).cartesian_product(-size..=size).collect();
         let mut builder = MazeBuilder::new(shape, rng);
 
-        let first = builder.generate_first_layer((0, 0));
+        let first = builder.generate_first_layer((0, size));
         let (mut left, mut center, mut right) = builder.fork_to_three_layers(first)?;
         for _ in 0..depth {
             left = builder.add_layer_from_deepest_point(left)?;
-        }
-        for _ in 0..depth {
             right = builder.add_layer_from_deepest_point(right)?;
         }
-        center = builder.add_layer_from_deepest_point(center)?;
+        if stage > 0 {
+            center = builder.add_layer_from_deepest_point(center)?;
+        }
         builder.set_finish_at_deepest_point(center);
         Ok(builder.into_maze())
     }
 
-    fn id(&self) -> &'static str { "debug" }
+    fn id(&self) -> &'static str { "tricky_square" }
 }
