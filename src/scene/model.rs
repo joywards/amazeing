@@ -69,9 +69,10 @@ impl Scene {
         level_id: &'static str,
         stage: u32
     ) -> Scene {
+        let player_pos = maze.position();
         let mut result = Scene {
             maze,
-            camera: (0.0, 0.0),
+            camera: (player_pos.0 as f32, player_pos.1 as f32),
             level_id, stage,
             visual_info: HashMap::new(),
             state: State::Idle,
