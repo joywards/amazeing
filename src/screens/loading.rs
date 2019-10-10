@@ -40,8 +40,7 @@ impl Screen for LoadingScreen {
         }
     }
 
-    fn render(&self, target: &mut Target) {
-        let canvas = &mut target.canvas;
+    fn render(&self, canvas: &mut Canvas) {
         canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));
         canvas.clear();
 

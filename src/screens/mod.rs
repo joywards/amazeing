@@ -6,7 +6,7 @@ mod manager;
 use std::time::Duration;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use crate::render::Target;
+use sdl2::render::WindowCanvas as Canvas;
 
 pub use manager::ScreenManager;
 
@@ -19,14 +19,15 @@ pub enum Transition {
 
 
 pub trait Screen {
-    fn on_enter(&mut self) {}
-    fn on_leave(&mut self) {}
-
+    // We want screen objects to be easy to construct passing data from other
+    // screens. That's why we provide canvas only after screen construction.
+    // `initialize` is guaranteed to be called before the first call to `render`.
+    fn initialize(&mut self, _canvas: &mut Canvas) {}
     fn handle_event(&mut self, _event: &Event) -> Transition {
         Transition::Stay
     }
     fn update(&mut self, _elapsed: Duration) -> Transition {
         Transition::Stay
     }
-    fn render(&self, _target: &mut Target) {}
+    fn render(&self, _canvas: &mut Canvas) {}
 }

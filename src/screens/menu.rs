@@ -8,7 +8,6 @@ use crate::levels::*;
 use crate::levels;
 use crate::geometry::Dir;
 use crate::utils::persistent_state::get_persistent_state;
-use crate::render::Canvas;
 
 pub struct MenuScreen {
     levels: Vec<(&'static dyn LevelGenerator, u32)>,
@@ -36,7 +35,7 @@ impl MenuScreen {
 
         let cursor = (levels.len() as u32 - 1, levels.iter().last().unwrap().1);
         Self {
-            levels, cursor
+            levels, cursor,
         }
     }
 }
@@ -112,9 +111,7 @@ impl Screen for MenuScreen {
         }
     }
 
-    fn render(&self, target: &mut Target) {
-        let canvas = &mut target.canvas;
-
+    fn render(&self, canvas: &mut Canvas) {
         canvas.set_draw_color(Color::RGB(32, 32, 32));
         canvas.clear();
 

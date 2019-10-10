@@ -20,15 +20,13 @@ mod visible_area;
 mod traversal;
 mod levels;
 mod scene;
-mod render;
 mod screens;
 mod observers;
 
 use std::time::{Duration, SystemTime};
 
-use render::Target;
 use screens::menu::MenuScreen;
-use screens::{Screen, ScreenManager};
+use screens::ScreenManager;
 
 pub const WINDOW_WIDTH: u32 = 1400;
 pub const WINDOW_HEIGHT: u32 = 900;
@@ -45,12 +43,11 @@ fn main() {
         .unwrap();
 
     let canvas = window.into_canvas().build().unwrap();
-    let texture_creator = canvas.texture_creator();
-    let mut render_target = Target::new(canvas, &texture_creator);
 
-    let mut manager = ScreenManager::new(Box::new(
-        MenuScreen::new()
-    ));
+    let mut manager = ScreenManager::new(
+        Box::new(MenuScreen::new()),
+        canvas
+    );
 
     let mut last_time = std::time::SystemTime::now();
     let mut event_pump = sdl_context.event_pump().unwrap();
@@ -64,8 +61,7 @@ fn main() {
         manager.update(elapsed);
         last_time = new_time;
 
-        manager.render(&mut render_target);
-        render_target.present();
+        manager.render();
 
         ::std::thread::sleep(Duration::from_micros(1_000_000u64 / 60));
     }
