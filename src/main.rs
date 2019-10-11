@@ -23,18 +23,23 @@ mod scene;
 mod render;
 mod screens;
 mod observers;
+mod cli;
 
 use std::time::{Duration, SystemTime};
+
+use structopt::StructOpt;
 
 use render::Target;
 use screens::menu::MenuScreen;
 use screens::{Screen, ScreenManager};
+use cli::Args;
 
 pub const WINDOW_WIDTH: u32 = 1400;
 pub const WINDOW_HEIGHT: u32 = 900;
 
 
 fn main() {
+    let args = Args::from_args();
     let sdl_context: sdl2::Sdl = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
@@ -49,7 +54,7 @@ fn main() {
     let mut render_target = Target::new(canvas, &texture_creator);
 
     let mut manager = ScreenManager::new(Box::new(
-        MenuScreen::new()
+        MenuScreen::new(args)
     ));
 
     let mut last_time = std::time::SystemTime::now();
