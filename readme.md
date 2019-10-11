@@ -7,12 +7,22 @@ to the left (or right) wall? Try this one!
 ![Screenshot](screenshots/0.png)
 
 ## Controls
+
+#### Main menu
+Keyboard                | Action
+----------------------- | ------------
+<kbd>Enter</kbd>        | Start playing
+<kbd>&uparrow;</kbd>, <kbd>&downarrow;</kbd> | Select level
+<kbd>&leftarrow;</kbd>, <kbd>&rightarrow;</kbd> | Select stage of the current level
+<kbd>Esc</kbd>          | Exit game
+
+#### In-game
 Keyboard                | Action
 ----------------------- | ------------
 <kbd>&uparrow;</kbd>, <kbd>&leftarrow;</kbd>, <kbd>&rightarrow;</kbd>, <kbd>&downarrow;</kbd> | Move
 <kbd>Space</kbd>        | Move one step backwards
-<kbd>Esc</kbd>          | Return to main menu or exit game
-<kbd>`</kbd>            | Use a hint
+<kbd>`</kbd>            | Use a hint (only available after a while)
+<kbd>Esc</kbd>          | Return to the main menu
 
 ## Running
 If you have never compiled Rust before, visit [rustup.rs](https://rustup.rs/) to install
