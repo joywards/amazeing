@@ -22,15 +22,24 @@ mod levels;
 mod scene;
 mod screens;
 mod observers;
+mod fonts;
 
 use std::time::{Duration, SystemTime};
 
 use screens::menu::MenuScreen;
 use screens::ScreenManager;
+use fonts::Fonts;
 
 pub const WINDOW_WIDTH: u32 = 1400;
 pub const WINDOW_HEIGHT: u32 = 900;
 
+
+// We don't really want to mess with lifetimes. Just make it 'static.
+lazy_static! {
+    static ref TTF: sdl2::ttf::Sdl2TtfContext = {
+        sdl2::ttf::init().unwrap()
+    };
+}
 
 fn main() {
     let sdl_context: sdl2::Sdl = sdl2::init().unwrap();
@@ -43,10 +52,12 @@ fn main() {
         .unwrap();
 
     let canvas = window.into_canvas().build().unwrap();
+    let fonts = Fonts::new(&TTF);
 
     let mut manager = ScreenManager::new(
         Box::new(MenuScreen::new()),
-        canvas
+        canvas,
+        fonts,
     );
 
     let mut last_time = std::time::SystemTime::now();

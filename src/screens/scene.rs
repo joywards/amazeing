@@ -90,7 +90,7 @@ impl Screen for SceneScreen {
         Transition::Stay
     }
 
-    fn initialize(&mut self, canvas: &mut Canvas) {
+    fn initialize(&mut self, canvas: &mut Canvas, _fonts: &Fonts) {
         self.renderer.initialize(canvas);
     }
 

@@ -3,14 +3,16 @@ use crate::screens::*;
 pub struct ScreenManager {
     current_screen: Box<dyn Screen>,
     canvas: Canvas,
+    fonts: Fonts,
     is_running: bool,
 }
 
 impl ScreenManager {
-    pub fn new(screen: Box<dyn Screen>, canvas: Canvas) -> Self {
+    pub fn new(screen: Box<dyn Screen>, canvas: Canvas, fonts: Fonts) -> Self {
         Self {
             current_screen: screen,
             canvas,
+            fonts,
             is_running: true,
         }
     }
@@ -27,7 +29,7 @@ impl ScreenManager {
             },
             Transition::Goto(screen) => {
                 self.current_screen = screen;
-                self.current_screen.initialize(&mut self.canvas);
+                self.current_screen.initialize(&mut self.canvas, &self.fonts);
             }
         }
     }
