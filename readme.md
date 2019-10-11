@@ -35,3 +35,7 @@ After that compiling and running Amazeing is as easy as this:
 ```
 $ cargo run --release
 ```
+
+## Credits
+Used font - [mystyle](https://www.fontspace.com/ashleyeden/mystyle) by
+AshleyEden (Tamlyn Nicholson).
