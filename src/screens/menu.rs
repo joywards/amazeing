@@ -4,11 +4,11 @@ use sdl2::pixels::Color;
 
 use crate::screens::*;
 use crate::screens::loading::LoadingScreen;
+use crate::screens::fading::FadingScreen;
 use crate::levels::*;
 use crate::levels;
 use crate::geometry::Dir;
 use crate::utils::persistent_state::get_persistent_state;
-use crate::render::Canvas;
 use crate::cli::Args;
 
 pub struct MenuScreen {
@@ -18,7 +18,7 @@ pub struct MenuScreen {
 }
 
 impl MenuScreen {
-    pub fn new(args: Args) -> Self {
+    pub fn new(args: Args) -> FadingScreen<Self> {
         let persistent_state = get_persistent_state().lock().unwrap();
         let mut found_uncompleted_level = false;
         let levels: Vec<_> = levels::GENERATORS.iter().map(|&generator| {
@@ -37,7 +37,14 @@ impl MenuScreen {
         }).collect();
 
         let cursor = (levels.len() as u32 - 1, levels.iter().last().unwrap().1);
-        Self { levels, cursor, args }
+      
+        FadingScreen::new(
+            Self {
+                levels, cursor, args,
+            },
+            Duration::from_millis(100),
+            Duration::from_millis(100)
+        )
     }
 }
 
@@ -112,9 +119,7 @@ impl Screen for MenuScreen {
         }
     }
 
-    fn render(&self, target: &mut Target) {
-        let canvas = &mut target.canvas;
-
+    fn render(&self, canvas: &mut Canvas) {
         canvas.set_draw_color(Color::RGB(32, 32, 32));
         canvas.clear();
 

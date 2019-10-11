@@ -1,8 +1,11 @@
 use crate::geometry::Dir;
 use crate::maze::{Maze, MoveResult};
 use crate::scene;
-use crate::screens::*;
-use crate::screens::menu::MenuScreen;
+use crate::screens::{
+    *,
+    menu::MenuScreen,
+    fading::FadingScreen,
+};
 use crate::observers::{level_completion_observer, LevelCompleted};
 use crate::cli::Args;
 
@@ -13,12 +16,16 @@ pub struct SceneScreen {
 }
 
 impl SceneScreen {
-    pub fn from_maze(maze: Maze, level_id: &'static str, stage: u32, args: Args) -> Self {
-        Self {
-            scene: scene::Scene::new(maze, level_id, stage),
-            renderer: scene::Renderer::new(args.clone()),
-            args
-        }
+    pub fn from_maze(maze: Maze, level_id: &'static str, stage: u32, args: Args) -> FadingScreen<Self> {
+        FadingScreen::new(
+            Self {
+                scene: scene::Scene::new(maze, level_id, stage),
+                renderer: scene::Renderer::new(),
+                args,
+            },
+            Duration::from_millis(0), // Maze is initially shadowed anyways
+            Duration::from_millis(700),
+        )
     }
 
     fn notify_about_level_completion(&self) {
@@ -66,7 +73,7 @@ impl Screen for SceneScreen {
         };
 
         let move_result = match action {
-            Action::Exit => return Transition::Goto(Box::new(MenuScreen::new(self.args.clone()))),
+            Action::Exit => return Transition::GotoNow(Box::new(MenuScreen::new(self.args.clone()))),
             Action::Move(dir) => {
                 self.scene.try_move(dir)
             },
@@ -93,7 +100,11 @@ impl Screen for SceneScreen {
         Transition::Stay
     }
 
-    fn render(&self, target: &mut Target) {
-        self.renderer.render(&self.scene, target);
+    fn initialize(&mut self, canvas: &mut Canvas, _fonts: &Fonts) {
+        self.renderer.initialize(canvas);
+    }
+
+    fn render(&self, canvas: &mut Canvas) {
+        self.renderer.render(&self.scene, canvas);
     }
 }

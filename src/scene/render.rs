@@ -5,40 +5,39 @@ use std::cmp;
 use sdl2::pixels::Color;
 use sdl2::surface::Surface;
 use sdl2::rect::Rect;
+use sdl2::render::Texture;
+use sdl2::render::WindowCanvas as Canvas;
 
 use crate::geometry::Dir;
 use crate::visible_area::{visibility_radius, visible_area};
 use crate::scene::{Scene, Camera};
-use crate::render::{Canvas, Target};
-use crate::maze::{CellInfo};
 use crate::cli::Args;
-
+use crate::maze::CellInfo;
+l
 
 pub struct Renderer {
     args: Args,
     window_size: Cell<(u32, u32)>,
+    light_texture: Option<Texture>,
 }
 
 impl Renderer {
     pub fn new(args: Args) -> Self {
         Renderer {
             args,
-            window_size: Cell::new((0, 0))
-        }
-    }
-    pub fn initialize(&self, renderer: &mut Target) {
-        if renderer.textures.light.is_none() {
-            let light_surface = create_light_surface(&self.args).unwrap();
-            renderer.textures.light = Some(
-                renderer.texture_creator.create_texture_from_surface(light_surface).unwrap()
-            );
+            window_size: Cell::new((0, 0)),
+            light_texture: None,
         }
     }
 
-    pub fn render(&self, scene: &Scene, renderer: &mut Target) {
-        self.initialize(renderer);
-        let canvas = &mut renderer.canvas;
+    pub fn initialize(&mut self, canvas: &mut Canvas) {
+        let light_surface = create_light_surface();
+        self.light_texture = Some(
+            canvas.texture_creator().create_texture_from_surface(light_surface).unwrap()
+        );
+    }
 
+    pub fn render(&self, scene: &Scene, canvas: &mut Canvas) {
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
 
@@ -86,7 +85,7 @@ impl Renderer {
             light_center.0 += self.args.cell_size as i32 / 2;
             light_center.1 += self.args.cell_size as i32 / 2;
 
-            let light_texture: &_ = renderer.textures.light.as_ref().unwrap();
+            let light_texture = self.light_texture.as_ref().unwrap();
             let query = light_texture.query();
             canvas.copy(
                 light_texture,
@@ -180,12 +179,14 @@ impl Renderer {
     }
 }
 
-fn create_light_surface(args: &Args) -> Result<Surface<'static>, String> {
+fn create_light_surface(args: &Args) -> Surface<'static> {
     let radius = ((visibility_radius() as f32 - 1. / 2_f32.sqrt()) * args.cell_size as f32) as u32;
     let size = visibility_radius() as u32 * 2 * args.cell_size;
+
     let center = size / 2;
-    let surface = Surface::new(size, size, sdl2::pixels::PixelFormatEnum::RGBA32)?;
-    let mut canvas = surface.into_canvas()?;
+
+    let surface = Surface::new(size, size, sdl2::pixels::PixelFormatEnum::RGBA32).unwrap();
+    let mut canvas = surface.into_canvas().unwrap();
     for i in 0..size {
         for j in 0..size {
             let x = i as i32 - center as i32;
@@ -201,5 +202,5 @@ fn create_light_surface(args: &Args) -> Result<Surface<'static>, String> {
             canvas.draw_point((i as i32, j as i32)).unwrap();
         }
     }
-    Ok(canvas.into_surface())
+    canvas.into_surface()
 }
