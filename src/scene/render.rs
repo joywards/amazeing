@@ -13,7 +13,6 @@ use crate::visible_area::{visibility_radius, visible_area};
 use crate::scene::{Scene, Camera};
 use crate::cli::Args;
 use crate::maze::CellInfo;
-l
 
 pub struct Renderer {
     args: Args,
@@ -31,7 +30,7 @@ impl Renderer {
     }
 
     pub fn initialize(&mut self, canvas: &mut Canvas) {
-        let light_surface = create_light_surface();
+        let light_surface = create_light_surface(&self.args);
         self.light_texture = Some(
             canvas.texture_creator().create_texture_from_surface(light_surface).unwrap()
         );

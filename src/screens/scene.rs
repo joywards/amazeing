@@ -20,7 +20,7 @@ impl SceneScreen {
         FadingScreen::new(
             Self {
                 scene: scene::Scene::new(maze, level_id, stage),
-                renderer: scene::Renderer::new(),
+                renderer: scene::Renderer::new(args.clone()),
                 args,
             },
             Duration::from_millis(0), // Maze is initially shadowed anyways

@@ -27,6 +27,8 @@ mod fonts;
 
 use std::time::{Duration, SystemTime};
 
+use structopt::StructOpt;
+
 use screens::menu::MenuScreen;
 use screens::ScreenManager;
 use fonts::Fonts;
@@ -57,9 +59,6 @@ fn main() {
     let canvas = window.into_canvas().build().unwrap();
     let fonts = Fonts::new(&TTF);
 
-    let mut manager = ScreenManager::new(Box::new(
-        MenuScreen::new(args)
-    ));
     let mut manager = ScreenManager::new(
         Box::new(MenuScreen::new(args)),
         canvas,
