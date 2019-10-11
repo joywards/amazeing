@@ -27,7 +27,7 @@ impl ScreenManager {
             Transition::Exit => {
                 self.is_running = false;
             },
-            Transition::Goto(screen) => {
+            Transition::Goto(screen) | Transition::GotoNow(screen) => {
                 self.current_screen = screen;
                 self.current_screen.initialize(&mut self.canvas, &self.fonts);
             }

@@ -1,8 +1,11 @@
 use crate::geometry::Dir;
 use crate::maze::{Maze, MoveResult};
 use crate::scene;
-use crate::screens::*;
-use crate::screens::menu::MenuScreen;
+use crate::screens::{
+    *,
+    menu::MenuScreen,
+    fading::FadingScreen,
+};
 use crate::observers::{level_completion_observer, LevelCompleted};
 
 pub struct SceneScreen {
@@ -11,11 +14,15 @@ pub struct SceneScreen {
 }
 
 impl SceneScreen {
-    pub fn from_maze(maze: Maze, level_id: &'static str, stage: u32) -> Self {
-        Self {
-            scene: scene::Scene::new(maze, level_id, stage),
-            renderer: scene::Renderer::new(),
-        }
+    pub fn from_maze(maze: Maze, level_id: &'static str, stage: u32) -> FadingScreen<Self> {
+        FadingScreen::new(
+            Self {
+                scene: scene::Scene::new(maze, level_id, stage),
+                renderer: scene::Renderer::new(),
+            },
+            Duration::from_millis(0), // Maze is initially shadowed anyways
+            Duration::from_millis(700),
+        )
     }
 
     fn notify_about_level_completion(&self) {
@@ -63,7 +70,7 @@ impl Screen for SceneScreen {
         };
 
         let move_result = match action {
-            Action::Exit => return Transition::Goto(Box::new(MenuScreen::new())),
+            Action::Exit => return Transition::GotoNow(Box::new(MenuScreen::new())),
             Action::Move(dir) => {
                 self.scene.try_move(dir)
             },

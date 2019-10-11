@@ -1,6 +1,7 @@
 pub mod scene;
 pub mod menu;
 pub mod loading;
+mod fading;
 mod manager;
 
 use std::time::Duration;
@@ -15,6 +16,7 @@ pub use manager::ScreenManager;
 pub enum Transition {
     Stay,
     Goto(Box<dyn Screen>),
+    GotoNow(Box<dyn Screen>),
     Exit,
 }
 

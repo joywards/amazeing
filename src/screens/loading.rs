@@ -1,8 +1,11 @@
 use std::sync::mpsc::{channel, Receiver, TryRecvError};
 
-use crate::screens::*;
-use crate::screens::scene::SceneScreen;
-use crate::screens::menu::MenuScreen;
+use crate::screens::{
+    *,
+    scene::SceneScreen,
+    menu::MenuScreen,
+    fading::FadingScreen,
+};
 use crate::maze::Maze;
 use crate::levels::LevelGenerator;
 
@@ -18,7 +21,7 @@ pub struct LoadingScreen {
 }
 
 impl LoadingScreen {
-    pub fn new(generator: &'static dyn LevelGenerator, stage: u32) -> Self {
+    pub fn new(generator: &'static dyn LevelGenerator, stage: u32) -> FadingScreen<Self> {
         let level_id = generator.id();
 
         let (sender, receiver) = channel();
@@ -26,12 +29,16 @@ impl LoadingScreen {
             sender.send(generator.generate(stage)).unwrap();
         });
 
-        Self {
-            receiver,
-            level_id,
-            stage,
-            text_texture: None,
-        }
+        FadingScreen::new(
+            Self {
+                receiver,
+                level_id,
+                stage,
+                text_texture: None,
+            },
+            Duration::from_millis(400),
+            Duration::from_millis(400),
+        )
     }
 
     fn render_text(canvas: &mut Canvas, texture: &Texture) {
@@ -73,11 +80,10 @@ impl Screen for LoadingScreen {
     }
 
     fn render(&self, canvas: &mut Canvas) {
-        canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));
+        canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
 
         Self::render_text(canvas, &self.text_texture.as_ref().unwrap());
-        // TODO: fade in and fade out effects
         // TODO: draw a spinner
     }
 }
