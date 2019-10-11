@@ -22,13 +22,17 @@ mod levels;
 mod scene;
 mod screens;
 mod observers;
+mod cli;
 mod fonts;
 
 use std::time::{Duration, SystemTime};
 
+use structopt::StructOpt;
+
 use screens::menu::MenuScreen;
 use screens::ScreenManager;
 use fonts::Fonts;
+use cli::Args;
 
 pub const WINDOW_WIDTH: u32 = 1400;
 pub const WINDOW_HEIGHT: u32 = 900;
@@ -42,6 +46,7 @@ lazy_static! {
 }
 
 fn main() {
+    let args = Args::from_args();
     let sdl_context: sdl2::Sdl = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
@@ -55,7 +60,7 @@ fn main() {
     let fonts = Fonts::new(&TTF);
 
     let mut manager = ScreenManager::new(
-        Box::new(MenuScreen::new()),
+        Box::new(MenuScreen::new(args)),
         canvas,
         fonts,
     );

@@ -9,14 +9,16 @@ use crate::levels::*;
 use crate::levels;
 use crate::geometry::Dir;
 use crate::utils::persistent_state::get_persistent_state;
+use crate::cli::Args;
 
 pub struct MenuScreen {
     levels: Vec<(&'static dyn LevelGenerator, u32)>,
     cursor: (u32, u32),
+    args: Args,
 }
 
 impl MenuScreen {
-    pub fn new() -> FadingScreen<Self> {
+    pub fn new(args: Args) -> FadingScreen<Self> {
         let persistent_state = get_persistent_state().lock().unwrap();
         let mut found_uncompleted_level = false;
         let levels: Vec<_> = levels::GENERATORS.iter().map(|&generator| {
@@ -35,9 +37,10 @@ impl MenuScreen {
         }).collect();
 
         let cursor = (levels.len() as u32 - 1, levels.iter().last().unwrap().1);
+      
         FadingScreen::new(
             Self {
-                levels, cursor,
+                levels, cursor, args,
             },
             Duration::from_millis(100),
             Duration::from_millis(100)
@@ -81,7 +84,7 @@ impl Screen for MenuScreen {
                 let (generator, completed) = self.levels[self.cursor.0 as usize];
                 let stage = self.cursor.1;
                 assert!(stage <= completed);
-                Transition::Goto(Box::new(LoadingScreen::new(generator, stage)))
+                Transition::Goto(Box::new(LoadingScreen::new(generator, stage, self.args.clone())))
             },
             Action::MoveCursor(dir) => {
                 match dir {

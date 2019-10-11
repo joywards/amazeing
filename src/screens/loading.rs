@@ -8,6 +8,7 @@ use crate::screens::{
 };
 use crate::maze::Maze;
 use crate::levels::LevelGenerator;
+use crate::cli::Args;
 
 use sdl2::render::Texture;
 use sdl2::pixels::Color;
@@ -16,12 +17,12 @@ pub struct LoadingScreen {
     receiver: Receiver<Maze>,
     level_id: &'static str,
     stage: u32,
-
     text_texture: Option<Texture>,
+    args: Args,
 }
 
 impl LoadingScreen {
-    pub fn new(generator: &'static dyn LevelGenerator, stage: u32) -> FadingScreen<Self> {
+    pub fn new(generator: &'static dyn LevelGenerator, stage: u32, args: Args) -> FadingScreen<Self> {
         let level_id = generator.id();
 
         let (sender, receiver) = channel();
@@ -35,6 +36,7 @@ impl LoadingScreen {
                 level_id,
                 stage,
                 text_texture: None,
+                args
             },
             Duration::from_millis(400),
             Duration::from_millis(400),
@@ -60,12 +62,12 @@ impl Screen for LoadingScreen {
         match self.receiver.try_recv() {
             Ok(maze) => {
                 Transition::Goto(Box::new(SceneScreen::from_maze(
-                    maze, self.level_id, self.stage
+                    maze, self.level_id, self.stage, self.args.clone()
                 )))
             },
             Err(TryRecvError::Empty) => Transition::Stay,
             Err(TryRecvError::Disconnected) => Transition::Goto(
-                Box::new(MenuScreen::new())
+                Box::new(MenuScreen::new(self.args.clone()))
             ),
         }
     }
