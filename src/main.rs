@@ -23,6 +23,7 @@ mod scene;
 mod screens;
 mod observers;
 mod fonts;
+mod ui;
 
 use std::time::{Duration, SystemTime};
 

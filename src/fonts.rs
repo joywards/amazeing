@@ -1,9 +1,13 @@
 use std::env;
 use std::path::PathBuf;
-use sdl2::ttf::{Sdl2TtfContext, Font};
+use sdl2::ttf::Sdl2TtfContext;
+
+
+pub type Font = sdl2::ttf::Font<'static, 'static>;
 
 pub struct Fonts {
-    pub default: Font<'static, 'static>,
+    pub default: Font,
+    pub small: Font,
 }
 
 impl Fonts {
@@ -11,6 +15,7 @@ impl Fonts {
         let dir = Self::find_fonts_dir();
         Self {
             default: context.load_font(dir.join("mystyle.ttf"), 64).unwrap(),
+            small: context.load_font(dir.join("mystyle.ttf"), 30).unwrap(),
         }
     }
 

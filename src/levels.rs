@@ -19,6 +19,8 @@ pub trait LevelGenerator: Send + Sync {
     /// Recommended number of stages to complete before proceeding to the next level.
     fn recommended_length(&self) -> u32 { 3 }
 
+    fn intro_text(&self) -> &'static str;
+
     fn try_generate(&self, stage: u32, rng: &mut SmallRng) -> Result<Maze, GenerationError>;
 
     fn generate(&self, stage: u32) -> Maze {
@@ -63,6 +65,7 @@ impl LevelGenerator for Plain {
     }
 
     fn id(&self) -> &'static str { "plain" }
+    fn intro_text(&self) -> &'static str { "Let's start with something simple." }
 }
 
 
@@ -88,6 +91,9 @@ impl LevelGenerator for Ring {
     }
 
     fn id(&self) -> &'static str { "ring" }
+    fn intro_text(&self) -> &'static str {
+        "So, you get the idea. Lets try something more challenging."
+    }
     fn recommended_length(&self) -> u32 { 1 }
 }
 
@@ -112,6 +118,9 @@ impl LevelGenerator for Lemniscate {
     }
 
     fn id(&self) -> &'static str { "lemniscate" }
+    fn intro_text(&self) -> &'static str {
+        "If something seems wrong, don't worry - it's just your mind playing tricks on you."
+    }
     fn recommended_length(&self) -> u32 { 2 }
 }
 
@@ -138,6 +147,10 @@ impl LevelGenerator for Hourglass {
     }
 
     fn id(&self) -> &'static str { "hourglass" }
+    fn intro_text(&self) -> &'static str {
+        "If you start feeling dizzy, nauseous, desperate or miserable, \
+        you should probably stop playing."
+    }
 }
 
 
@@ -158,6 +171,9 @@ impl LevelGenerator for DeceptivelySmall {
     }
 
     fn id(&self) -> &'static str { "deceptively_small" }
+    fn intro_text(&self) -> &'static str {
+        "Never give up! Even when it seems that there is no way out."
+    }
     fn recommended_length(&self) -> u32 { 4 }
 }
 
@@ -185,4 +201,8 @@ impl LevelGenerator for TrickySquare {
     }
 
     fn id(&self) -> &'static str { "tricky_square" }
+    fn intro_text(&self) -> &'static str {
+        "Well, you still think that you can trick me just by sticking to the wall, huh? \
+        Playtime is over. Taste some real stuff!"
+    }
 }
