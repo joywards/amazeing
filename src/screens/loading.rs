@@ -16,12 +16,17 @@ pub struct LoadingScreen {
     receiver: Receiver<Maze>,
     level_id: &'static str,
     stage: u32,
+    autocontinue: bool,
 
     text_texture: Option<Texture>,
 }
 
 impl LoadingScreen {
-    pub fn new(generator: &'static dyn LevelGenerator, stage: u32) -> FadingScreen<Self> {
+    pub fn new(
+        generator: &'static dyn LevelGenerator,
+        stage: u32,
+        autocontinue: bool,
+    ) -> FadingScreen<Self> {
         let level_id = generator.id();
 
         let (sender, receiver) = channel();
@@ -34,6 +39,7 @@ impl LoadingScreen {
                 receiver,
                 level_id,
                 stage,
+                autocontinue,
                 text_texture: None,
             },
             Duration::from_millis(400),
@@ -60,12 +66,12 @@ impl Screen for LoadingScreen {
         match self.receiver.try_recv() {
             Ok(maze) => {
                 Transition::Goto(Box::new(SceneScreen::from_maze(
-                    maze, self.level_id, self.stage
+                    maze, self.level_id, self.stage, self.autocontinue
                 )))
             },
             Err(TryRecvError::Empty) => Transition::Stay,
             Err(TryRecvError::Disconnected) => Transition::Goto(
-                Box::new(MenuScreen::new())
+                MenuScreen::create()
             ),
         }
     }

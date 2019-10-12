@@ -16,6 +16,8 @@ use crate::visible_area::visibility_radius;
 
 pub trait LevelGenerator: Send + Sync {
     fn id(&self) -> &'static str;
+    /// Recommended number of stages to complete before proceeding to the next level.
+    fn recommended_length(&self) -> u32 { 3 }
 
     fn try_generate(&self, stage: u32, rng: &mut SmallRng) -> Result<Maze, GenerationError>;
 
@@ -86,6 +88,7 @@ impl LevelGenerator for Ring {
     }
 
     fn id(&self) -> &'static str { "ring" }
+    fn recommended_length(&self) -> u32 { 1 }
 }
 
 
@@ -102,17 +105,14 @@ impl LevelGenerator for Lemniscate {
         let mut builder = MazeBuilder::new(shape, rng);
 
         let first = builder.generate_first_layer(spawn);
-        let last = if stage < 2 {
-            first
-        } else {
-            builder.fork_to_two_layers(first)?.0
-        };
+        let last = builder.fork_to_two_layers(first)?.0;
         builder.set_finish_at_deepest_point(last);
 
         Ok(builder.into_maze())
     }
 
     fn id(&self) -> &'static str { "lemniscate" }
+    fn recommended_length(&self) -> u32 { 2 }
 }
 
 
@@ -146,7 +146,7 @@ pub struct DeceptivelySmall();
 impl LevelGenerator for DeceptivelySmall {
     fn try_generate(&self, stage: u32, rng: &mut SmallRng) -> Result<Maze, GenerationError> {
         let radius = visibility_radius() - 2;
-        let depth = 1 + stage / 2;
+        let depth = 1 + stage;
         let shape = make_circle(radius).collect();
         let mut builder = MazeBuilder::new(shape, rng);
         let mut last = builder.generate_first_layer((0, 0));
@@ -158,6 +158,7 @@ impl LevelGenerator for DeceptivelySmall {
     }
 
     fn id(&self) -> &'static str { "deceptively_small" }
+    fn recommended_length(&self) -> u32 { 4 }
 }
 
 

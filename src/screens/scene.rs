@@ -11,14 +11,21 @@ use crate::observers::{level_completion_observer, LevelCompleted};
 pub struct SceneScreen {
     scene: scene::Scene,
     renderer: scene::Renderer,
+    autocontinue: bool,
 }
 
 impl SceneScreen {
-    pub fn from_maze(maze: Maze, level_id: &'static str, stage: u32) -> FadingScreen<Self> {
+    pub fn from_maze(
+        maze: Maze,
+        level_id: &'static str,
+        stage: u32,
+        autocontinue: bool,
+    ) -> FadingScreen<Self> {
         FadingScreen::new(
             Self {
                 scene: scene::Scene::new(maze, level_id, stage),
                 renderer: scene::Renderer::new(),
+                autocontinue,
             },
             Duration::from_millis(0), // Maze is initially shadowed anyways
             Duration::from_millis(700),
@@ -70,7 +77,7 @@ impl Screen for SceneScreen {
         };
 
         let move_result = match action {
-            Action::Exit => return Transition::GotoNow(Box::new(MenuScreen::new())),
+            Action::Exit => return Transition::GotoNow(MenuScreen::create()),
             Action::Move(dir) => {
                 self.scene.try_move(dir)
             },
@@ -86,7 +93,11 @@ impl Screen for SceneScreen {
 
         if move_result == MoveResult::Finish {
             self.notify_about_level_completion();
-            Transition::Goto(Box::new(MenuScreen::new()))
+            if self.autocontinue {
+                Transition::Goto(MenuScreen::create_and_autostart())
+            } else {
+                Transition::Goto(MenuScreen::create())
+            }
         } else {
             Transition::Stay
         }

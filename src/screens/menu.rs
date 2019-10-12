@@ -13,13 +13,50 @@ use crate::utils::persistent_state::get_persistent_state;
 pub struct MenuScreen {
     levels: Vec<(&'static dyn LevelGenerator, u32)>,
     cursor: (u32, u32),
+    recommended_level: (u32, u32),
 }
 
 impl MenuScreen {
-    pub fn new() -> FadingScreen<Self> {
+    fn new() -> Self {
+        let levels = Self::get_unlocked_levels();
+        let recommended_level = Self::find_recommended_level(&levels);
+        Self {
+            levels,
+            cursor: recommended_level,
+            recommended_level
+        }
+    }
+
+    pub fn create() -> Box<dyn Screen> {
+        Self::new().with_effects()
+    }
+
+    pub fn create_and_autostart() -> Box<dyn Screen> {
+        let menu_screen = Self::new();
+        menu_screen.start_level(menu_screen.recommended_level)
+    }
+
+    pub fn create_initial() -> Box<dyn Screen> {
+        let menu_screen = Self::new();
+        if menu_screen.recommended_level == (0, 0) {
+            menu_screen.start_level(menu_screen.recommended_level)
+        } else {
+            menu_screen.with_effects()
+        }
+    }
+
+    fn with_effects(self) -> Box<dyn Screen> {
+        Box::new(FadingScreen::new(
+            self,
+            Duration::from_millis(100),
+            Duration::from_millis(100)
+        ))
+    }
+
+    fn get_unlocked_levels() -> Vec<(&'static dyn LevelGenerator, u32)> {
         let persistent_state = get_persistent_state().lock().unwrap();
         let mut found_uncompleted_level = false;
-        let levels: Vec<_> = levels::GENERATORS.iter().map(|&generator| {
+        levels::GENERATORS.iter().map(|&generator| {
             let completed_stages = persistent_state
                 .progress.completed_stages(generator.id());
             (generator, completed_stages)
@@ -32,16 +69,28 @@ impl MenuScreen {
                 }
                 true
             }
-        }).collect();
+        }).collect()
+    }
 
-        let cursor = (levels.len() as u32 - 1, levels.iter().last().unwrap().1);
-        FadingScreen::new(
-            Self {
-                levels, cursor,
-            },
-            Duration::from_millis(100),
-            Duration::from_millis(100)
-        )
+    fn find_recommended_level(
+        levels: &[(&'static dyn LevelGenerator, u32)]
+    ) -> (u32, u32) {
+        for (i, &(generator, completed_stages)) in levels.iter().enumerate() {
+            if completed_stages < generator.recommended_length()
+                || i + 1 == levels.len()
+            {
+                return (i as u32, completed_stages);
+            }
+        }
+        unreachable!();
+    }
+
+    fn start_level(&self, level: (u32, u32)) -> Box<dyn Screen> {
+        let (generator, completed_stages) = self.levels[level.0 as usize];
+        let stage = level.1;
+        assert!(stage <= completed_stages);
+        let autocontinue = self.recommended_level <= level;
+        Box::new(LoadingScreen::new(generator, stage, autocontinue))
     }
 }
 
@@ -77,12 +126,7 @@ impl Screen for MenuScreen {
         match action {
             Action::Exit => Transition::Exit,
             Action::Nothing => Transition::Stay,
-            Action::StartLevel => {
-                let (generator, completed) = self.levels[self.cursor.0 as usize];
-                let stage = self.cursor.1;
-                assert!(stage <= completed);
-                Transition::Goto(Box::new(LoadingScreen::new(generator, stage)))
-            },
+            Action::StartLevel => Transition::Goto(self.start_level(self.cursor)),
             Action::MoveCursor(dir) => {
                 match dir {
                     Dir::UP => {

@@ -55,7 +55,7 @@ fn main() {
     let fonts = Fonts::new(&TTF);
 
     let mut manager = ScreenManager::new(
-        Box::new(MenuScreen::new()),
+        MenuScreen::create_initial(),
         canvas,
         fonts,
     );

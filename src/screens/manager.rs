@@ -9,12 +9,14 @@ pub struct ScreenManager {
 
 impl ScreenManager {
     pub fn new(screen: Box<dyn Screen>, canvas: Canvas, fonts: Fonts) -> Self {
-        Self {
+        let mut result = Self {
             current_screen: screen,
             canvas,
             fonts,
             is_running: true,
-        }
+        };
+        result.current_screen.initialize(&mut result.canvas, &result.fonts);
+        result
     }
 
     pub fn keep_running(&self) -> bool {
