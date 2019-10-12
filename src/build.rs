@@ -130,6 +130,12 @@ impl<'r> MazeBuilder<'r> {
             &mut new_layer, std::iter::once(escape), region_to_copy.cells(),
             &mut self.rng
         );
+        // Run generation again over the entire layer to get rid of blocked out
+        // unreachable regions.
+        generate(
+            &mut new_layer, self.shape.iter().copied(), region_to_copy.cells(),
+            &mut self.rng
+        );
 
         let info = traversal::dfs(
             &new_layer, source_coord, Some(back)
