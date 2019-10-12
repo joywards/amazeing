@@ -17,7 +17,7 @@ use crate::visible_area::visibility_radius;
 pub trait LevelGenerator: Send + Sync {
     fn id(&self) -> &'static str;
     /// Recommended number of stages to complete before proceeding to the next level.
-    fn recommended_length(&self) -> u32 { 3 }
+    fn recommended_length(&self) -> u32;
 
     fn intro_text(&self) -> &'static str;
 
@@ -66,6 +66,7 @@ impl LevelGenerator for Plain {
 
     fn id(&self) -> &'static str { "plain" }
     fn intro_text(&self) -> &'static str { "Let's start with something simple." }
+    fn recommended_length(&self) -> u32 { 3 }
 }
 
 
@@ -91,8 +92,11 @@ impl LevelGenerator for Ring {
     }
 
     fn id(&self) -> &'static str { "ring" }
+    // TODO show help about taking a hint only when the player seems stuck.
     fn intro_text(&self) -> &'static str {
-        "So, you get the idea. Lets try something more challenging."
+        "So, you get the idea. Lets try something more challenging.\n\n\
+        By the way, you can press \"space\" to move backwards and a backtick \
+        when you feel desperate (not guaranteed to help though)."
     }
     fn recommended_length(&self) -> u32 { 1 }
 }
@@ -121,7 +125,7 @@ impl LevelGenerator for Lemniscate {
     fn intro_text(&self) -> &'static str {
         "If something seems wrong, don't worry - it's just your mind playing tricks on you."
     }
-    fn recommended_length(&self) -> u32 { 2 }
+    fn recommended_length(&self) -> u32 { 3 }
 }
 
 
@@ -130,7 +134,7 @@ pub struct Hourglass();
 impl LevelGenerator for Hourglass {
     fn try_generate(&self, stage: u32, rng: &mut SmallRng) -> Result<Maze, GenerationError> {
         let radius = 10 + stage as i32;
-        let depth = 1 + stage / 3;
+        let depth = 1 + stage / 2;
         let shape = make_hourglass(radius).collect();
 
         let mut builder = MazeBuilder::new(shape, rng);
@@ -151,6 +155,7 @@ impl LevelGenerator for Hourglass {
         "If you start feeling dizzy, nauseous, desperate or miserable, \
         you should probably stop playing."
     }
+    fn recommended_length(&self) -> u32 { 4 }
 }
 
 
@@ -205,4 +210,5 @@ impl LevelGenerator for TrickySquare {
         "Well, you still think that you can trick me just by sticking to the wall, huh? \
         Playtime is over. Taste some real stuff!"
     }
+    fn recommended_length(&self) -> u32 { 3 }
 }
